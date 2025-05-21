@@ -1,0 +1,15 @@
+{
+    "js": [
+        "js/dataTables.columnControl.js",
+        "js/dataTables.columnControl.min.js",
+        "js/dataTables.columnControl.min.mjs",
+        "js/dataTables.columnControl.mjs"
+    ],
+    "css": [],
+    "types": [
+        "types/types.d.ts"
+    ],
+    "src-repo": "http://github.com/DataTables/ColumnControl",
+    "last-tag": "0.0.1",
+    "last-sync": ""
+}
