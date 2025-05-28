@@ -4,7 +4,7 @@
     "main": "js/dataTables.columnControl.js",
     "module": "js/dataTables.columnControl.mjs",
     "types": "./types/types.d.ts",
-    "version": "0.9.2",
+    "version": "1.0.0",
     "files": [
         "js/**/*.js",
         "js/**/*.mjs",
@@ -22,7 +22,7 @@
         "sort"
     ],
     "dependencies": {
-        "datatables.net": "^2.3.0"
+        "datatables.net": "^2.3"
     },
     "moduleType": [
         "globals",
