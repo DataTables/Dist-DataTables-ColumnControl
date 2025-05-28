@@ -724,6 +724,7 @@ var CheckList = /** @class */ (function () {
                     buttons[i].active(true);
                 }
             }
+            this._updateCount();
             return this;
         }
         for (i = 0; i < buttons.length; i++) {
@@ -959,25 +960,7 @@ var order = {
             .icon('orderAsc')
             .className(config.className);
         if (!config.statusOnly) {
-            btn.handler(function () {
-                var order = dt.order();
-                var sequence = dt.settings()[0].aoColumns[_this.idx()].asSorting;
-                var found = order.find(function (o) { return o[0] === _this.idx(); });
-                var apply = [];
-                if (!found) {
-                    apply.push([_this.idx(), sequence[0]]);
-                }
-                else {
-                    var currentIdx = sequence.indexOf(found[1]);
-                    if (currentIdx + 1 >= sequence.length) {
-                        apply.push([_this.idx(), sequence[0]]);
-                    }
-                    else {
-                        apply.push([_this.idx(), sequence[currentIdx + 1]]);
-                    }
-                }
-                dt.order(apply).draw();
-            });
+            dt.order.listener(btn.element(), this.idx(), function () { });
         }
         dt.on('order', function (e, s, order) {
             var found = order.find(function (o) { return o.col === _this.idx(); });
@@ -1767,7 +1750,12 @@ var searchList = {
             if (!data.columnControl[idx]) {
                 data.columnControl[idx] = {};
             }
-            data.columnControl[idx].searchList = checkList.values();
+            // If the table isn't yet ready, then the options for the list won't have been
+            // populated (above) and therefore there can't be an values. In such a case
+            // use the last saved values and this will refresh on the next draw.
+            data.columnControl[idx].searchList = dt.ready()
+                ? checkList.values()
+                : loadedValues;
         });
         loadedValues = getState(this.idx(), dt.state.loaded());
         applySearch(loadedValues);
@@ -2271,7 +2259,7 @@ var ColumnControl = /** @class */ (function () {
     /** SVG icons that can be used by the content plugins */
     ColumnControl.icons = icons;
     /** Version */
-    ColumnControl.version = '0.0.1-dev';
+    ColumnControl.version = '0.9.0';
     return ColumnControl;
 }());
 
