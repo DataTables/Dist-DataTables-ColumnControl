@@ -17,14 +17,12 @@
  "buttons",
  "column visibility",
         "Datatables",
-        "jQuery",
         "table",
         "filter",
         "sort"
     ],
     "dependencies": {
-        "datatables.net": "~2.2",
-        "jquery": ">=1.7"
+        "datatables.net": "^2.3"
     },
     "moduleType": [
         "globals",
