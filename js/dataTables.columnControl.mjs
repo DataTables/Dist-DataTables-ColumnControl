@@ -1613,7 +1613,7 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
         // for this column - get the values for the column, taking into account
         // orthogonal rendering
         var found_1 = {};
-        dt.cells('*', idx, { order: idx }).every(function () {
+        dt.cells(null, idx, { order: idx }).every(function () {
             var filter = this.render('filter');
             if (!found_1[filter]) {
                 found_1[filter] = true;
