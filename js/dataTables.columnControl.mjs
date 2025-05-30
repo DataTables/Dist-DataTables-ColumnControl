@@ -1612,17 +1612,19 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
         // Either no ajax object (i.e. not an Ajax table), or no matching ajax options
         // for this column - get the values for the column, taking into account
         // orthogonal rendering
-        var found_1 = {};
-        dt.cells(null, idx, { order: idx }).every(function () {
-            var filter = this.render('filter');
-            if (!found_1[filter]) {
-                found_1[filter] = true;
+        var found = {};
+        var rows = dt.rows({ order: idx }).indexes().toArray();
+        var settings = dt.settings()[0];
+        for (var i = 0; i < rows.length; i++) {
+            var filter = settings.fastData(rows[i], idx, 'filter');
+            if (!found[filter]) {
+                found[filter] = true;
                 options.push({
-                    label: this.render('display'),
+                    label: settings.fastData(rows[i], idx, 'display'),
                     value: filter
                 });
             }
-        });
+        }
     }
     setOptions(checkList, options);
     // If there was a state loaded at start up, then we need to set the visual
