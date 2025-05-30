@@ -10,6 +10,6 @@
         "types/types.d.ts"
     ],
     "src-repo": "http://github.com/DataTables/ColumnControl",
-    "last-tag": "1.0.1",
+    "last-tag": "1.0.2",
     "last-sync": "2c4a242188328fc2a8d1867d4cd8a5041c21828b"
 }
