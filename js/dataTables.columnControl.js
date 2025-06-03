@@ -1435,7 +1435,7 @@ var searchDateTime = {
         var dateTime;
         var searchInput = new SearchInput(dt, this.idx())
             .type('date')
-            .addClass('dtcc-searchDate')
+            .addClass('dtcc-searchDateTime')
             .clearable(config.clear)
             .placeholder(config.placeholder)
             .title(config.title)
