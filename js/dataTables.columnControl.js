@@ -1,4 +1,4 @@
-/*! ColumnControl 1.0.2
+/*! ColumnControl 1.0.3
  * Copyright (c) SpryMedia Ltd - datatables.net/license
  *
  * SVG icons: ISC License
@@ -182,13 +182,12 @@ function positionDropdown(dropdown, dt, btn) {
         left = position.left - dropdownWidth + btn.offsetWidth;
     }
     // Corrections - don't extend past the DataTable to the left and right
-    var containerOffsetLeft = dtContainer.offsetLeft;
     var containerWidth = dtContainer.offsetWidth;
     if (left + dropdownWidth > containerWidth) {
         left -= left + dropdownWidth - containerWidth;
     }
-    if (left < containerOffsetLeft) {
-        left = containerOffsetLeft;
+    if (left < 0) {
+        left = 0;
     }
     dropdown.style.top = top + 'px';
     dropdown.style.left = left + 'px';
@@ -2267,7 +2266,7 @@ var ColumnControl = /** @class */ (function () {
     /** SVG icons that can be used by the content plugins */
     ColumnControl.icons = icons;
     /** Version */
-    ColumnControl.version = '1.0.2';
+    ColumnControl.version = '1.0.3';
     return ColumnControl;
 }());
 
