@@ -157,6 +157,9 @@ function close(e) {
         }
     });
 }
+function getContainer(dt, btn) {
+    return btn.closest('div.dtfh-floatingparent') || dt.table().container();
+}
 /**
  * Position the dropdown relative to the button that activated it, with possible corrections
  * to make sure it is visible on the page.
@@ -166,11 +169,11 @@ function close(e) {
  * @param btn Button the dropdown emanates from
  */
 function positionDropdown(dropdown, dt, btn) {
-    var dtContainer = dt.table().container();
     var header = btn.closest('div.dt-column-header');
+    var container = getContainer(dt, btn);
     var headerStyle = getComputedStyle(header);
     var dropdownWidth = dropdown.offsetWidth;
-    var position = relativePosition(dtContainer, btn);
+    var position = relativePosition(container, btn);
     var left, top;
     top = position.top + btn.offsetHeight;
     if (headerStyle.flexDirection === 'row-reverse') {
@@ -182,7 +185,7 @@ function positionDropdown(dropdown, dt, btn) {
         left = position.left - dropdownWidth + btn.offsetWidth;
     }
     // Corrections - don't extend past the DataTable to the left and right
-    var containerWidth = dtContainer.offsetWidth;
+    var containerWidth = container.offsetWidth;
     if (left + dropdownWidth > containerWidth) {
         left -= left + dropdownWidth - containerWidth;
     }
@@ -201,7 +204,7 @@ function positionDropdown(dropdown, dt, btn) {
  * @returns Function to call when the dropdown should be removed from the document
  */
 function attachDropdown(dropdown, dt, btn) {
-    var dtContainer = dt.table().container();
+    var dtContainer = getContainer(dt, btn.element());
     dropdown._shown = true;
     dtContainer.append(dropdown);
     positionDropdown(dropdown, dt, btn.element());
@@ -270,6 +273,13 @@ var dropdownContent = {
             dropdown.remove();
             dropdown._shown = false;
         };
+        // When FixedHeader is used, the transition between states messes up positioning, so if
+        // shown we just reattach the dropdown.
+        dt.on('fixedheader-mode', function () {
+            if (dropdown._shown) {
+                attachDropdown(dropdown, dt, config._parents ? config._parents[0] : btn);
+            }
+        });
         // A liner element allows more styling options, so the contents go inside this
         var liner = dropdown.childNodes[0];
         var btn = new Button(dt)
