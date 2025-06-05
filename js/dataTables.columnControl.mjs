@@ -574,8 +574,13 @@ var CheckList = /** @class */ (function () {
                 _this._updateCount();
             })
                 .icon(option.icon || '')
-                .text(option.label)
+                .text(option.label !== ''
+                ? option.label
+                : this_1._s.dt.i18n('columnControl.list.emptyOption', 'Empty'))
                 .value(option.value);
+            if (option.label === '') {
+                btn.className('empty');
+            }
             this_1._s.buttons.push(btn);
         };
         var this_1 = this;
