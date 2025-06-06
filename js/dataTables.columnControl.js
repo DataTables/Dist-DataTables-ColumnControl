@@ -1448,6 +1448,7 @@ var searchDateTime = {
         var moment = DataTable.use('moment');
         var luxon = DataTable.use('luxon');
         var dt = this.dt();
+        var i18nBase = 'columnControl.search.datetime.';
         var displayFormat = '';
         var dateTime;
         var searchInput = new SearchInput(dt, this.idx())
@@ -1458,12 +1459,12 @@ var searchDateTime = {
             .title(config.title)
             .titleAttr(config.titleAttr)
             .options([
-            { label: 'Equals', value: 'equal' },
-            { label: 'Does not equal', value: 'notEqual' },
-            { label: 'After', value: 'greater' },
-            { label: 'Before', value: 'less' },
-            { label: 'Empty', value: 'empty' },
-            { label: 'Not empty', value: 'notEmpty' }
+            { label: dt.i18n(i18nBase + 'equal', 'Equals'), value: 'equal' },
+            { label: dt.i18n(i18nBase + 'notEqual', 'Does not equal'), value: 'notEqual' },
+            { label: dt.i18n(i18nBase + 'greater', 'After'), value: 'greater' },
+            { label: dt.i18n(i18nBase + 'less', 'Before'), value: 'less' },
+            { label: dt.i18n(i18nBase + 'empty', 'Empty'), value: 'empty' },
+            { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
         ])
             .search(function (searchType, searchTerm, loadingState) {
             var column = dt.column(_this.idx());
@@ -1800,6 +1801,7 @@ var searchNumber = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
+        var i18nBase = 'columnControl.search.number.';
         var searchInput = new SearchInput(dt, this.idx())
             .type('num')
             .addClass('dtcc-searchNumber')
@@ -1808,14 +1810,17 @@ var searchNumber = {
             .title(config.title)
             .titleAttr(config.titleAttr)
             .options([
-            { label: 'Equals', value: 'equal' },
-            { label: 'Does not equal', value: 'notEqual' },
-            { label: 'Greater than', value: 'greater' },
-            { label: 'Greater or equal', value: 'greaterOrEqual' },
-            { label: 'Less than', value: 'less' },
-            { label: 'Less or equal', value: 'lessOrEqual' },
-            { label: 'Empty', value: 'empty' },
-            { label: 'Not empty', value: 'notEmpty' }
+            { label: dt.i18n(i18nBase + 'equal', 'Equals'), value: 'equal' },
+            { label: dt.i18n(i18nBase + 'notEqual', 'Does not equal'), value: 'notEqual' },
+            { label: dt.i18n(i18nBase + 'greater', 'Greater than'), value: 'greater' },
+            {
+                label: dt.i18n(i18nBase + 'greaterOrEqual', 'Greater or equal'),
+                value: 'greaterOrEqual'
+            },
+            { label: dt.i18n(i18nBase + 'less', 'Less than'), value: 'less' },
+            { label: dt.i18n(i18nBase + 'lessOrEqual', 'Less or equal'), value: 'lessOrEqual' },
+            { label: dt.i18n(i18nBase + 'empty', 'Empty'), value: 'empty' },
+            { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
         ])
             .search(function (searchType, searchTerm, loadingState) {
             var column = dt.column(_this.idx());
@@ -1894,6 +1899,7 @@ var searchText = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
+        var i18nBase = 'columnControl.search.text.';
         var searchInput = new SearchInput(dt, this.idx())
             .addClass('dtcc-searchText')
             .clearable(config.clear)
@@ -1901,14 +1907,17 @@ var searchText = {
             .title(config.title)
             .titleAttr(config.titleAttr)
             .options([
-            { label: 'Contains', value: 'contains' },
-            { label: 'Does not contain', value: 'notContains' },
-            { label: 'Equals', value: 'equal' },
-            { label: 'Does not equal', value: 'notEqual' },
-            { label: 'Starts', value: 'starts' },
-            { label: 'Ends', value: 'ends' },
-            { label: 'Empty', value: 'empty' },
-            { label: 'Not empty', value: 'notEmpty' }
+            { label: dt.i18n(i18nBase + 'contains', 'Contains'), value: 'contains' },
+            {
+                label: dt.i18n(i18nBase + 'notContains', 'Does not contain'),
+                value: 'notContains'
+            },
+            { label: dt.i18n(i18nBase + 'equal', 'Equals'), value: 'equal' },
+            { label: dt.i18n(i18nBase + 'notEqual', 'Does not equal'), value: 'notEqual' },
+            { label: dt.i18n(i18nBase + 'starts', 'Starts'), value: 'starts' },
+            { label: dt.i18n(i18nBase + 'ends', 'Ends'), value: 'ends' },
+            { label: dt.i18n(i18nBase + 'empty', 'Empty'), value: 'empty' },
+            { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
         ])
             .search(function (searchType, searchTerm, loadingState) {
             var column = dt.column(_this.idx());
