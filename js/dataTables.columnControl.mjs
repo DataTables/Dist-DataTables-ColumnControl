@@ -35,7 +35,7 @@ function addClass(el, classes) {
         classes = [classes];
     }
     classes.forEach(function (className) {
-        if (className) {
+        if (el && className) {
             el.classList.add(className);
         }
     });
