@@ -533,12 +533,12 @@ var CheckList = /** @class */ (function () {
         };
         var selectAllClick = function (e) {
             _this.selectAll();
-            _this._s.handler(e, null, _this._s.buttons);
+            _this._s.handler(e, null, _this._s.buttons, true);
             _this._updateCount();
         };
         var selectNoneClick = function (e) {
             _this.selectNone();
-            _this._s.handler(e, null, _this._s.buttons);
+            _this._s.handler(e, null, _this._s.buttons, true);
             _this._updateCount();
         };
         if (opts.search) {
@@ -570,7 +570,7 @@ var CheckList = /** @class */ (function () {
             var btn = new Button(this_1._s.dt)
                 .active(option.active || false)
                 .handler(function (e) {
-                _this._s.handler(e, btn, _this._s.buttons);
+                _this._s.handler(e, btn, _this._s.buttons, true);
                 _this._updateCount();
             })
                 .icon(option.icon || '')
@@ -653,7 +653,7 @@ var CheckList = /** @class */ (function () {
         dt.on('cc-search-clear', function (e, colIdx) {
             if (colIdx === parent.idx()) {
                 _this.selectNone();
-                _this._s.handler(e, null, _this._s.buttons);
+                _this._s.handler(e, null, _this._s.buttons, false);
                 _this._s.search = '';
                 _this._dom.search.value = '';
                 _this._redraw();
@@ -1208,7 +1208,10 @@ var SearchInput = /** @class */ (function () {
         // Column control search clearing (column().ccSearchClear() method)
         dt.on('cc-search-clear', function (e, colIdx) {
             if (colIdx === _this._idx) {
+                // Don't want an automatic redraw on this event
+                _this._loadingState = true;
                 _this.clear();
+                _this._loadingState = false;
             }
         });
     }
@@ -1696,12 +1699,14 @@ var searchList = {
             .title(dt
             .i18n('columnControl.searchList', config.title)
             .replace('[title]', dt.column(this.idx()).title()))
-            .handler(function (e, btn) {
+            .handler(function (e, btn, btns, redraw) {
             if (btn) {
                 btn.active(!btn.active());
             }
             applySearch(checkList.values());
-            dt.draw();
+            if (redraw) {
+                dt.draw();
+            }
         });
         if (config.options) {
             setOptions(checkList, config.options);
@@ -1986,7 +1991,7 @@ var searchClear = {
             .icon(config.icon)
             .className(config.className)
             .handler(function () {
-            dt.column(_this.idx()).ccSearchClear();
+            dt.column(_this.idx()).ccSearchClear().draw();
         })
             .enable(false);
         dt.on('draw', function () {
@@ -2311,6 +2316,7 @@ $(document).on('preInit.dt', function (e, settings) {
 DataTable.Api.registerPlural('columns().ccSearchClear()', 'column().ccSearchClear()', function () {
     var ctx = this;
     return this.iterator('column', function (settings, idx) {
+        // Note that the listeners for this will not redraw the table.
         ctx.trigger('cc-search-clear', [idx]);
     });
 });
@@ -2336,6 +2342,7 @@ DataTable.ext.buttons.ccSearchClear = {
     action: function (e, dt, node, config) {
         dt.search('');
         dt.columns().ccSearchClear();
+        dt.draw();
     }
 };
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
