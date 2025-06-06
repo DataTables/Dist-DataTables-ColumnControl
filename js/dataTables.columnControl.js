@@ -980,7 +980,7 @@ var order = {
             .icon('orderAsc')
             .className(config.className);
         if (!config.statusOnly) {
-            dt.order.listener(btn.element(), function () { return [_this.idx()]; }, function () { });
+            dt.order.listener(btn.element(), DataTable.versionCheck('2.3.2') ? function () { return [_this.idx()]; } : this.idx(), function () { });
         }
         dt.on('order', function (e, s, order) {
             var found = order.find(function (o) { return o.col === _this.idx(); });
