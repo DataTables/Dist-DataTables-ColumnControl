@@ -2370,7 +2370,9 @@ DataTable.Api.registerPlural('columns().ccSearchClear()', 'column().ccSearchClea
     });
 });
 DataTable.ext.buttons.ccSearchClear = {
-    text: 'Clear search',
+    text: function (dt) {
+        return dt.i18n('columnControl.buttons.searchClear', 'Clear search');
+    },
     init: function (dt, node, config) {
         var _this = this;
         dt.on('draw', function () {
