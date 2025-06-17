@@ -252,6 +252,51 @@ function relativePosition(parent, origin) {
         left: left
     };
 }
+/**
+ * Function that will provide the keyboard navigation for the dropdown
+ *
+ * @param dropdown Dropdown element in question
+ * @returns Function that can be bound to `keypress`
+ */
+function focusCapture(dropdown, host) {
+    return function (e) {
+        // Do nothing if not shown
+        if (!dropdown._shown) {
+            return;
+        }
+        // Focus trap for tab key
+        var elements = Array.from(dropdown.querySelectorAll('a, button, input, select'));
+        var active = document.activeElement;
+        // An escape key should close the dropdown
+        if (e.key === 'Escape') {
+            dropdown._close();
+            host.focus(); // Restore focus to the host
+            return;
+        }
+        else if (e.key !== 'Tab' || elements.length === 0) {
+            // Anything other than tab we aren't interested in from here
+            return;
+        }
+        if (!elements.includes(active)) {
+            // If new focus is not inside the popover we want to drag it back in
+            elements[0].focus();
+            e.preventDefault();
+        }
+        else if (e.shiftKey) {
+            // Reverse tabbing order when shift key is pressed
+            if (active === elements[0]) {
+                elements[elements.length - 1].focus();
+                e.preventDefault();
+            }
+        }
+        else {
+            if (active === elements[elements.length - 1]) {
+                elements[0].focus();
+                e.preventDefault();
+            }
+        }
+    };
+}
 var dropdownContent = {
     classes: {
         container: 'dtcc-dropdown',
@@ -273,6 +318,8 @@ var dropdownContent = {
             dropdown.remove();
             dropdown._shown = false;
         };
+        dropdown.setAttribute('role', 'dialog');
+        dropdown.setAttribute('aria-label', dt.i18n('columnControl.dropdown', config.text));
         // When FixedHeader is used, the transition between states messes up positioning, so if
         // shown we just reattach the dropdown.
         dt.on('fixedheader-mode', function () {
@@ -294,7 +341,14 @@ var dropdownContent = {
                 return;
             }
             attachDropdown(dropdown, dt, config._parents ? config._parents[0] : btn);
+            // When activated using a key - auto focus on the first item in the popover
+            var focusable = dropdown.querySelector('input, a, button');
+            console.log(e.type, e);
+            if (focusable && e.type === 'keypress') {
+                focusable.focus();
+            }
         });
+        btn.element().setAttribute('aria-haspopup', 'dialog');
         // Add the content for the dropdown
         for (var i = 0; i < config.content.length; i++) {
             var content = this.resolve(config.content[i]);
@@ -314,6 +368,12 @@ var dropdownContent = {
         // Reposition if needed
         dt.on('columns-reordered', function () {
             positionDropdown(dropdown, dt, btn.element());
+        });
+        // Focus capture events
+        var capture = focusCapture(dropdown, btn.element());
+        document.body.addEventListener('keydown', capture);
+        dt.on('destroy', function () {
+            document.body.removeEventListener('keydown', capture);
         });
         return btn.element();
     }
@@ -411,6 +471,7 @@ var Button = /** @class */ (function () {
     Button.prototype.destroy = function () {
         if (this._s.buttonClick) {
             this._dom.button.removeEventListener('click', this._s.buttonClick);
+            this._dom.button.removeEventListener('keypress', this._s.buttonClick);
         }
         if (this._s.namespace) {
             this._s.dt.off('destroy.' + this._s.namespace);
@@ -478,6 +539,7 @@ var Button = /** @class */ (function () {
         this._s.buttonClick = buttonClick;
         this._s.namespace = 'dtcc-' + _namespace++;
         this._dom.button.addEventListener('click', buttonClick);
+        this._dom.button.addEventListener('keypress', buttonClick);
         // Use a unique namespace to be able to easily remove per button
         this._s.dt.on('destroy.' + this._s.namespace, function () {
             _this.destroy();
@@ -2092,6 +2154,7 @@ var spacer = {
     init: function (config) {
         var dt = this.dt();
         var spacer = createElement('div', config.className, dt.i18n('columnControl.spacer', config.text));
+        spacer.setAttribute('role', 'separator');
         return spacer;
     }
 };
