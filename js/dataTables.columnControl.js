@@ -1517,6 +1517,7 @@ var searchDateTime = {
             if (DateTime) {
                 dateTime = new DateTime(searchInput.input(), {
                     format: displayFormat,
+                    i18n: dt.settings()[0].oLanguage.datetime, // could be undefined
                     onChange: function () {
                         fromPicker = true;
                         searchInput.runSearch();
