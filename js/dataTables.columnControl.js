@@ -404,6 +404,7 @@ var Button = /** @class */ (function () {
             state: createElement('span', 'dtcc-button-state'),
             text: createElement('span', 'dtcc-button-text')
         };
+        this._dom.button.setAttribute('type', 'button');
         this._dom.button.append(this._dom.icon);
         this._dom.button.append(this._dom.text);
         this._dom.button.append(this._dom.state);
@@ -627,6 +628,8 @@ var CheckList = /** @class */ (function () {
             dom.controls.append(dom.selectNone);
             dom.selectAll.append(dom.selectAllCount);
             dom.selectNone.append(dom.selectNoneCount);
+            dom.selectAll.setAttribute('type', 'button');
+            dom.selectNone.setAttribute('type', 'button');
         }
         // Events
         var searchInput = function () {
