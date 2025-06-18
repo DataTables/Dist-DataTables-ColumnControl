@@ -303,7 +303,6 @@ var dropdownContent = {
             attachDropdown(dropdown, dt, config._parents ? config._parents[0] : btn);
             // When activated using a key - auto focus on the first item in the popover
             var focusable = dropdown.querySelector('input, a, button');
-            console.log(e.type, e);
             if (focusable && e.type === 'keypress') {
                 focusable.focus();
             }
@@ -1783,7 +1782,10 @@ var searchList = {
         }
         // Xhr event listener for updates of options
         dt.on('xhr', function (e, s, json) {
-            reloadOptions(dt, config, _this.idx(), checkList, loadedValues);
+            // Need to wait for the draw to complete so the table has the latest data
+            dt.one('draw', function () {
+                reloadOptions(dt, config, _this.idx(), checkList, loadedValues);
+            });
         });
         // Unlike the SearchInput based search contents, CheckList does not handle state saving
         // (since the mechanism for column visibility is different), so state saving is handled
