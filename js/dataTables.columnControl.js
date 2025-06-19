@@ -1746,7 +1746,7 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
         var rows = dt.rows({ order: idx }).indexes().toArray();
         var settings = dt.settings()[0];
         for (var i = 0; i < rows.length; i++) {
-            var filter = settings.fastData(rows[i], idx, 'filter');
+            var filter = settings.fastData(rows[i], idx, 'filter').toString();
             if (!found[filter]) {
                 found[filter] = true;
                 options.push({
