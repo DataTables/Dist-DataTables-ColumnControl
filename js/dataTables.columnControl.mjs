@@ -1688,14 +1688,12 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
         options = jsonOptions;
     }
     else if (json && config.ajaxOnly) {
-        if (config.hidable) {
-            // Ajax only options - need to hide the search list
-            checkList.element().style.display = 'none';
-            // Check if the parent buttons should be hidden as well (they will be if there
-            // is no visible content in them)
-            if (config._parents) {
-                config._parents.forEach(function (btn) { return btn.checkDisplay(); });
-            }
+        // Ajax only options - need to hide the search list
+        checkList.element().style.display = 'none';
+        // Check if the parent buttons should be hidden as well (they will be if there
+        // is no visible content in them)
+        if (config._parents) {
+            config._parents.forEach(function (btn) { return btn.checkDisplay(); });
         }
         // No point in doing any further processing here
         return;
@@ -1729,7 +1727,6 @@ var searchList = {
     defaults: {
         ajaxOnly: true,
         className: 'searchList',
-        hidable: true,
         options: null,
         search: true,
         select: true,
@@ -2092,7 +2089,6 @@ var searchDropdown = {
         className: 'searchDropdown',
         clear: true,
         columns: '',
-        hidable: true,
         options: null,
         placeholder: '',
         search: true,
