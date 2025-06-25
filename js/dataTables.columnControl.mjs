@@ -1688,12 +1688,14 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
         options = jsonOptions;
     }
     else if (json && config.ajaxOnly) {
-        // Ajax only options - need to hide the search list
-        checkList.element().style.display = 'none';
-        // Check if the parent buttons should be hidden as well (they will be if there
-        // is no visible content in them)
-        if (config._parents) {
-            config._parents.forEach(function (btn) { return btn.checkDisplay(); });
+        if (config.hidable) {
+            // Ajax only options - need to hide the search list
+            checkList.element().style.display = 'none';
+            // Check if the parent buttons should be hidden as well (they will be if there
+            // is no visible content in them)
+            if (config._parents) {
+                config._parents.forEach(function (btn) { return btn.checkDisplay(); });
+            }
         }
         // No point in doing any further processing here
         return;
@@ -1706,7 +1708,10 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
         var rows = dt.rows({ order: idx }).indexes().toArray();
         var settings = dt.settings()[0];
         for (var i = 0; i < rows.length; i++) {
-            var filter = settings.fastData(rows[i], idx, 'filter').toString();
+            var raw = settings.fastData(rows[i], idx, 'filter');
+            var filter = raw !== null && raw !== undefined
+                ? raw.toString()
+                : '';
             if (!found[filter]) {
                 found[filter] = true;
                 options.push({
@@ -1727,6 +1732,7 @@ var searchList = {
     defaults: {
         ajaxOnly: true,
         className: 'searchList',
+        hidable: true,
         options: null,
         search: true,
         select: true,
@@ -2089,6 +2095,7 @@ var searchDropdown = {
         className: 'searchDropdown',
         clear: true,
         columns: '',
+        hidable: true,
         options: null,
         placeholder: '',
         search: true,
