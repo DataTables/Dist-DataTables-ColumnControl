@@ -1,4 +1,4 @@
-/*! ColumnControl 1.0.6
+/*! ColumnControl 1.0.7
  * Copyright (c) SpryMedia Ltd - datatables.net/license
  *
  * SVG icons: ISC License
@@ -1715,7 +1715,7 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
             if (!found[filter]) {
                 found[filter] = true;
                 options.push({
-                    label: settings.fastData(rows[i], idx, 'display'),
+                    label: settings.fastData(rows[i], idx, config.orthogonal),
                     value: filter
                 });
             }
@@ -1734,6 +1734,7 @@ var searchList = {
         className: 'searchList',
         hidable: true,
         options: null,
+        orthogonal: 'display',
         search: true,
         select: true,
         title: ''
@@ -2332,7 +2333,7 @@ var ColumnControl = /** @class */ (function () {
     /** SVG icons that can be used by the content plugins */
     ColumnControl.icons = icons;
     /** Version */
-    ColumnControl.version = '1.0.6';
+    ColumnControl.version = '1.0.7';
     return ColumnControl;
 }());
 
@@ -2361,7 +2362,9 @@ $(document).on('i18n.dt', function (e, settings) {
         settings.titleRow = 0;
     }
     identifyTargets(baseTargets, tableInit);
-    identifyTargets(baseTargets, defaultInit);
+    if (ColumnControl.defaults.content) {
+        identifyTargets(baseTargets, defaultInit);
+    }
     api.columns().every(function (i) {
         var columnInit = this.init().columnControl;
         identifyTargets(baseTargets, columnInit);
@@ -2381,7 +2384,10 @@ $(document).on('preInit.dt', function (e, settings) {
     var defaultInit = ColumnControl.defaults;
     var baseTargets = [];
     identifyTargets(baseTargets, tableInit);
-    identifyTargets(baseTargets, defaultInit);
+    // Only add the default target if there is actually content for it
+    if (ColumnControl.defaults.content) {
+        identifyTargets(baseTargets, defaultInit);
+    }
     api.columns().every(function (i) {
         var columnInit = this.init().columnControl;
         var targets = identifyTargets(baseTargets.slice(), columnInit);
@@ -2565,12 +2571,18 @@ function identifyTargets(targets, input) {
         }
     }
     if (Array.isArray(input)) {
-        // Array of options, or an array of content
-        input.forEach(function (item) {
-            add(typeof item === 'object' && item.target !== undefined
-                ? item.target
-                : ColumnControl.defaults.target);
-        });
+        if (input.length === 0) {
+            // Empty array - assume it is empty content
+            add(ColumnControl.defaults.target);
+        }
+        else {
+            // Array of options, or an array of content
+            input.forEach(function (item) {
+                add(typeof item === 'object' && item.target !== undefined
+                    ? item.target
+                    : ColumnControl.defaults.target);
+            });
+        }
     }
     else if (typeof input === 'object') {
         // Full options defined: { target: x, content: [] }
