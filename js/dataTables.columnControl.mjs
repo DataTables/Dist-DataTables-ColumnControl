@@ -1622,6 +1622,9 @@ function dateToNum(input, srcFormat, moment, luxon) {
             ? moment(input, srcFormat).unix() * 1000
             : luxon.DateTime.fromFormat(input, srcFormat).toMillis();
     }
+    // new Date() with `/` separators will treat the input as local time, but with `-` it will
+    // treat it as UTC. We want UTC so do a replacement
+    input = input.replace(/\//g, '-');
     return new Date(input).getTime();
 }
 
