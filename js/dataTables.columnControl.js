@@ -1844,6 +1844,7 @@ var searchList = {
             var values = getState(_this.idx(), state);
             if (values) {
                 checkList.values(values);
+                applySearch(values);
             }
         });
         dt.on('stateSaveParams', function (e, s, data) {
