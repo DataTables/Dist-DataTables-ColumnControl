@@ -220,6 +220,12 @@ function attachDropdown(dropdown, dt, btn) {
         if (e.target === dropdown || dropdown.contains(e.target)) {
             return;
         }
+        // If there is currently a datetime picker visible on the page, assume that it belongs to
+        // this dropdown. Don't want to close while operating on the picker.
+        var datetime = document.querySelector('div.dt-datetime');
+        if (datetime && (e.target === datetime || datetime.contains(e.target))) {
+            return;
+        }
         dropdown._close();
         document.body.removeEventListener('click', removeDropdown);
     };
@@ -2142,6 +2148,7 @@ var searchDropdown = {
         columns: '',
         hidable: true,
         options: null,
+        orthogonal: 'display',
         placeholder: '',
         search: true,
         select: true,
