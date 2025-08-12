@@ -335,7 +335,7 @@ var dropdownContent = {
         });
         // A liner element allows more styling options, so the contents go inside this
         var liner = dropdown.childNodes[0];
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.dropdown', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -390,18 +390,20 @@ var Button = /** @class */ (function () {
      * Create a new button for use in ColumnControl contents. Buttons created by this class can be
      * used at the top level in the header or in a dropdown.
      */
-    function Button(dt) {
+    function Button(dt, host) {
         this._s = {
             active: false,
             activeList: [],
             buttonClick: null,
             dt: null,
             enabled: true,
+            host: null,
             label: '',
             namespace: '',
             value: null
         };
         this._s.dt = dt;
+        this._s.host = host;
         this._dom = {
             button: createElement('button', Button.classes.container),
             dropdownDisplay: null,
@@ -479,9 +481,7 @@ var Button = /** @class */ (function () {
             this._dom.button.removeEventListener('click', this._s.buttonClick);
             this._dom.button.removeEventListener('keypress', this._s.buttonClick);
         }
-        if (this._s.namespace) {
-            this._s.dt.off('destroy.' + this._s.namespace);
-        }
+        this._s.host.destroyRemove(this);
     };
     /**
      * Relevant for drop downs only. When a button in a dropdown is hidden, we might want to
@@ -546,10 +546,7 @@ var Button = /** @class */ (function () {
         this._s.namespace = 'dtcc-' + _namespace++;
         this._dom.button.addEventListener('click', buttonClick);
         this._dom.button.addEventListener('keypress', buttonClick);
-        // Use a unique namespace to be able to easily remove per button
-        this._s.dt.on('destroy.' + this._s.namespace, function () {
-            _this.destroy();
-        });
+        this._s.host.destroyAdd(this);
         return this;
     };
     /**
@@ -604,15 +601,17 @@ var CheckList = /** @class */ (function () {
     /**
      * Container for a list of buttons
      */
-    function CheckList(dt, opts) {
+    function CheckList(dt, host, opts) {
         var _this = this;
         this._s = {
             buttons: [],
             dt: null,
             handler: function () { },
+            host: null,
             search: ''
         };
         this._s.dt = dt;
+        this._s.host = host;
         this._dom = {
             buttons: createElement('div', 'dtcc-list-buttons'),
             container: createElement('div', CheckList.classes.container),
@@ -678,7 +677,7 @@ var CheckList = /** @class */ (function () {
         }
         var _loop_1 = function (i) {
             var option = options[i];
-            var btn = new Button(this_1._s.dt)
+            var btn = new Button(this_1._s.dt, this_1._s.host)
                 .active(option.active || false)
                 .handler(function (e) {
                 _this._s.handler(e, btn, _this._s.buttons, true);
@@ -758,11 +757,11 @@ var CheckList = /** @class */ (function () {
      * @param dt DataTable instance
      * @param idx Column index
      */
-    CheckList.prototype.searchListener = function (dt, parent) {
+    CheckList.prototype.searchListener = function (dt) {
         var _this = this;
         // Column control search clearing (column().ccSearchClear() method)
         dt.on('cc-search-clear', function (e, colIdx) {
-            if (colIdx === parent.idx()) {
+            if (colIdx === _this._s.host.idx()) {
                 _this.selectNone();
                 _this._s.handler(e, null, _this._s.buttons, false);
                 _this._s.search = '';
@@ -868,7 +867,7 @@ var colVis = {
     },
     init: function (config) {
         var dt = this.dt();
-        var checkList = new CheckList(dt, {
+        var checkList = new CheckList(dt, this, {
             search: config.search,
             select: config.select
         })
@@ -951,7 +950,7 @@ var reorder = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.reorder', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -984,7 +983,7 @@ var reorderLeft = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.reorderLeft', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -1014,7 +1013,7 @@ var reorderRight = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.reorderRight', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -1046,7 +1045,7 @@ var order = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.order', config.text))
             .icon('orderAsc')
             .className(config.className);
@@ -1078,7 +1077,7 @@ var orderAddAsc = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderAddAsc', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -1104,7 +1103,7 @@ var orderAddDesc = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderAddDesc', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -1130,7 +1129,7 @@ var orderAsc = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderAsc', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -1160,7 +1159,7 @@ var orderClear = {
     },
     init: function (config) {
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderClear', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -1186,7 +1185,7 @@ var orderDesc = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderDesc', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -1217,7 +1216,7 @@ var orderRemove = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderRemove', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -1814,11 +1813,11 @@ var searchList = {
                 config._parents.forEach(function (btn) { return btn.activeList(_this.unique(), !!values.length); });
             }
         };
-        var checkList = new CheckList(dt, {
+        var checkList = new CheckList(dt, this, {
             search: config.search,
             select: config.select
         })
-            .searchListener(dt, this)
+            .searchListener(dt)
             .title(dt
             .i18n('columnControl.searchList', config.title)
             .replace('[title]', dt.column(this.idx()).title()))
@@ -2121,7 +2120,7 @@ var searchClear = {
     init: function (config) {
         var _this = this;
         var dt = this.dt();
-        var btn = new Button(dt)
+        var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.searchClear', config.text))
             .icon(config.icon)
             .className(config.className)
@@ -2244,7 +2243,8 @@ var ColumnControl = /** @class */ (function () {
         this._c = {};
         this._s = {
             columnIdx: null,
-            unique: null
+            unique: null,
+            toDestroy: []
         };
         this._dt = dt;
         this._s.columnIdx = columnIdx;
@@ -2270,10 +2270,34 @@ var ColumnControl = /** @class */ (function () {
                 _this._dom.wrapper.appendChild(el);
             });
             dt.on('destroy', function () {
+                console.log('got ' + _this._s.toDestroy.length + ' buttons to destroy');
+                _this._s.toDestroy.slice().forEach(function (el) {
+                    el.destroy();
+                });
                 _this._dom.wrapper.remove();
             });
         }
     }
+    /**
+     * Add a component to the destroy list. This is so there is a single destroy event handler,
+     * which is much better for performance.
+     *
+     * @param component Any instance with a `destroy` method
+     */
+    ColumnControl.prototype.destroyAdd = function (component) {
+        this._s.toDestroy.push(component);
+    };
+    /**
+     * Remove an instance from the destroy list (it has been destroyed itself)
+     *
+     * @param component Any instance with a `destroy` method
+     */
+    ColumnControl.prototype.destroyRemove = function (component) {
+        var idx = this._s.toDestroy.indexOf(component);
+        if (idx !== -1) {
+            this._s.toDestroy.splice(idx, 1);
+        }
+    };
     /**
      * Get the DataTables API instance that hosts this instance of ColumnControl
      *
