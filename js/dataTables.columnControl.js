@@ -1299,10 +1299,10 @@ var SearchInput = /** @class */ (function () {
             if (!data.columnControl) {
                 data.columnControl = {};
             }
-            if (!data.columnControl[idx]) {
-                data.columnControl[idx] = {};
+            if (!data.columnControl[_this._idx]) {
+                data.columnControl[_this._idx] = {};
             }
-            data.columnControl[idx].searchInput = {
+            data.columnControl[_this._idx].searchInput = {
                 logic: dom.select.value,
                 type: _this._type,
                 value: dom.input.value
@@ -2270,7 +2270,6 @@ var ColumnControl = /** @class */ (function () {
                 _this._dom.wrapper.appendChild(el);
             });
             dt.on('destroy', function () {
-                console.log('got ' + _this._s.toDestroy.length + ' buttons to destroy');
                 _this._s.toDestroy.slice().forEach(function (el) {
                     el.destroy();
                 });
