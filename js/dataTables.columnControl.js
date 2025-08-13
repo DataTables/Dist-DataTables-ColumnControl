@@ -1837,14 +1837,14 @@ var searchList = {
             dt.ready(function () {
                 reloadOptions(dt, config, _this.idx(), checkList, loadedValues);
             });
-        }
-        // Xhr event listener for updates of options
-        dt.on('xhr', function (e, s, json) {
-            // Need to wait for the draw to complete so the table has the latest data
-            dt.one('draw', function () {
-                reloadOptions(dt, config, _this.idx(), checkList, loadedValues);
+            // Xhr event listener for updates of options
+            dt.on('xhr', function (e, s, json) {
+                // Need to wait for the draw to complete so the table has the latest data
+                dt.one('draw', function () {
+                    reloadOptions(dt, config, _this.idx(), checkList, loadedValues);
+                });
             });
-        });
+        }
         // Unlike the SearchInput based search contents, CheckList does not handle state saving
         // (since the mechanism for column visibility is different), so state saving is handled
         // here.
