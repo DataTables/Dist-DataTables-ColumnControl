@@ -62,6 +62,14 @@ var icons = {
     greater: wrap('<path d="m9 18 6-6-6-6"/>'),
     // Custom
     greaterOrEqual: wrap('<path d="m9 16 6-6-6-6"/><path d="m9 21 6-6"/>'),
+    // Custom
+    groupAdd: wrap('<path d="M6 21v-7.5m-3.549 3.75H9.75"/><rect width="13.5" height="7.5" x="3" y="3" rx="1.5"/><rect width="7.5" height="7.5" x="13.5" y="13.5" fill="currentColor" rx="1.5"/>'),
+    // Custom
+    groupClear: wrap('<rect width="13.5" height="7.5" x="3" y="3" rx="1.5"/><rect width="7.5" height="7.5" x="13.5" y="13.5" rx="1.5"/>'),
+    // Custom
+    groupTop: wrap('<rect width="13.5" height="7.5" x="3" y="3" fill="currentColor" rx="1.5"/><rect width="7.5" height="7.5" x="13.5" y="13.5" rx="1.5"/>'),
+    // Custom
+    groupRemove: wrap('<path d="M2.451 17.25H9.75"/><rect width="13.5" height="7.5" x="3" y="3" rx="1.5"/><rect width="7.5" height="7.5" x="13.5" y="13.5" rx="1.5"/>'),
     less: wrap('<path d="m15 18-6-6 6-6"/>'),
     // Custom
     lessOrEqual: wrap('<path d="m15 16-6-6 6-6"/><path d="m15 21-6-6"/>'),
@@ -1210,6 +1218,66 @@ var orderStatus = {
     }
 };
 
+var rowGroup = {
+    defaults: {
+        className: 'rowGroup',
+        icon: 'groupTop',
+        order: true,
+        text: 'Group rows'
+    },
+    init: function (config) {
+        var _this = this;
+        var dt = this.dt();
+        var btn = new Button(dt, this)
+            .text(dt.i18n('columnControl.rowGroup', config.text))
+            .icon(config.icon)
+            .className(config.className)
+            .handler(function () {
+            var dataSrc = dt.column(_this.idx()).dataSrc();
+            if (btn.active()) {
+                // Grouping is active - remove
+                var applied = dt.rowGroup().dataSrc();
+                var set = [];
+                if (Array.isArray(applied)) {
+                    // If it is in a nested level, remove
+                    var idx = applied.indexOf(dataSrc);
+                    if (idx !== 0) {
+                        applied.slice().splice(idx, 1);
+                    }
+                }
+                dt.rowGroup().dataSrc(set);
+            }
+            else {
+                // No grouping by this column yet, set it
+                dt.rowGroup().dataSrc(dataSrc);
+                if (config.order) {
+                    dt.order([
+                        {
+                            idx: _this.idx(),
+                            dir: 'asc'
+                        }
+                    ]);
+                }
+            }
+            dt.draw();
+        });
+        // Show as active when grouping is applied
+        dt.on('rowgroup-datasrc', function () {
+            var applied = dt.rowGroup().dataSrc();
+            var ours = dt.column(_this.idx()).dataSrc();
+            if (Array.isArray(applied)) {
+                // Multi-level grouping
+                btn.active(applied.includes(ours));
+            }
+            else {
+                // Single level grouping only
+                btn.active(applied === ours);
+            }
+        });
+        return btn.element();
+    }
+};
+
 var SearchInput = /** @class */ (function () {
     /**
      * Create a container element, for consistent DOM structure and styling
@@ -2164,6 +2232,7 @@ var contentTypes = {
     reorder: reorder,
     reorderLeft: reorderLeft,
     reorderRight: reorderRight,
+    rowGroup: rowGroup,
     order: order,
     orderAddAsc: orderAddAsc,
     orderAddDesc: orderAddDesc,
