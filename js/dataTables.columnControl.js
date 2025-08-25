@@ -129,7 +129,7 @@ DataTable.ext.buttons.ccSearchClear = {
     },
     init: function (dt, node, config) {
         var _this = this;
-        dt.on('draw', function () {
+        dt.on('draw.DT', function () {
             var enabled = false;
             var glob = !!dt.search();
             // No point in wasting clock cycles if we already know it will be enabled
