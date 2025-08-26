@@ -10,7 +10,7 @@
         <license type="expression">MIT</license>
         <tags>ColumnControl  search  filter  buttons  column visibility  Datatables jQuery table</tags>
         <dependencies>
-            <dependency id="datatables.net" version="2.3.1"/>
+            <dependency id="datatables.net" version="2.3.2"/>
         </dependencies>
         <contentFiles>
             <files include="**/*" buildAction="Content"/>
@@ -21,6 +21,10 @@
         <file src="js/dataTables.columnControl.js" target="contentFiles\any\any\wwwroot\js"/>
         <file src="js/dataTables.columnControl.min.js" target="content\Scripts"/>
         <file src="js/dataTables.columnControl.min.js" target="contentFiles\any\any\wwwroot\js"/>
+        <file src="js/dataTables.columnControl.min.mjs" target="content\Scripts"/>
+        <file src="js/dataTables.columnControl.min.mjs" target="contentFiles\any\any\wwwroot\js"/>
+        <file src="js/dataTables.columnControl.mjs" target="content\Scripts"/>
+        <file src="js/dataTables.columnControl.mjs" target="contentFiles\any\any\wwwroot\js"/>
     </files>
 </package>
 
