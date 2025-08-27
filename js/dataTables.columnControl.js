@@ -621,6 +621,7 @@ var CheckList = /** @class */ (function () {
             buttons: createElement('div', 'dtcc-list-buttons'),
             container: createElement('div', CheckList.classes.container),
             controls: createElement('div', 'dtcc-list-controls'),
+            empty: createElement('div', 'dtcc-list-empty', dt.i18n('columnControl.list.empty', 'No options')),
             title: createElement('div', 'dtcc-list-title'),
             selectAll: createElement('button', 'dtcc-list-selectAll', dt.i18n('columnControl.list.all', 'Select all')),
             selectAllCount: createElement('span'),
@@ -632,6 +633,7 @@ var CheckList = /** @class */ (function () {
         dom.search.setAttribute('type', 'text');
         dom.container.append(dom.title);
         dom.container.append(dom.controls);
+        dom.container.append(dom.empty);
         dom.container.append(dom.buttons);
         if (opts.select) {
             dom.controls.append(dom.selectAll);
@@ -854,6 +856,9 @@ var CheckList = /** @class */ (function () {
                 el.appendChild(btn.element());
             }
         }
+        console.log('buttons', buttons.length);
+        this._dom.empty.style.display = buttons.length === 0 ? 'block' : 'none';
+        el.style.display = buttons.length > 0 ? 'block' : 'none';
     };
     CheckList.classes = {
         container: 'dtcc-list',
@@ -1446,6 +1451,7 @@ var SearchInput = /** @class */ (function () {
     function SearchInput(dt, idx) {
         var _this = this;
         this._type = 'text';
+        this._sspTransform = null;
         this._dt = dt;
         this._idx = idx;
         this._dom = {
@@ -1484,7 +1490,7 @@ var SearchInput = /** @class */ (function () {
         });
         // State handling - all components that use this class have the same state saving structure
         // so shared handling can be performed here.
-        dt.on('stateSaveParams', function (e, s, data) {
+        dt.on('stateSaveParams.DT', function (e, s, data) {
             if (!data.columnControl) {
                 data.columnControl = {};
             }
@@ -1497,15 +1503,15 @@ var SearchInput = /** @class */ (function () {
                 value: dom.input.value
             };
         });
-        dt.on('stateLoaded', function (e, s, state) {
+        dt.on('stateLoaded.DT', function (e, s, state) {
             _this._stateLoad(state);
         });
         // Same as for ColumnControl - reassign a column index if needed.
-        dt.on('columns-reordered', function (e, details) {
+        dt.on('columns-reordered.DT', function (e, details) {
             _this._idx = dt.colReorder.transpose(originalIdx, 'fromOriginal');
         });
         // Column control search clearing (column().ccSearchClear() method)
-        dt.on('cc-search-clear', function (e, colIdx) {
+        dt.on('cc-search-clear.DT', function (e, colIdx) {
             if (colIdx === _this._idx) {
                 // Don't want an automatic redraw on this event
                 _this._loadingState = true;
@@ -1513,6 +1519,23 @@ var SearchInput = /** @class */ (function () {
                 _this._loadingState = false;
             }
         });
+        // Data for server-side processing
+        if (dt.page.info().serverSide) {
+            dt.on('preXhr.DT', function (e, s, d) {
+                if (!d.columns[_this._idx].columnControl) {
+                    d.columns[_this._idx].columnControl = {};
+                }
+                var val = _this._dom.input.value;
+                if (_this._sspTransform) {
+                    val = _this._sspTransform(val);
+                }
+                d.columns[_this._idx].columnControl.search = {
+                    value: val,
+                    logic: _this._dom.select.value,
+                    type: _this._type
+                };
+            });
+        }
     }
     /**
      * Add a class to the container
@@ -1636,6 +1659,16 @@ var SearchInput = /** @class */ (function () {
         return this;
     };
     /**
+     * Set a function to transform the input value before SSP data submission
+     *
+     * @param fn Transform function
+     * @returns Self for chaining
+     */
+    SearchInput.prototype.sspTransform = function (fn) {
+        this._sspTransform = fn;
+        return this;
+    };
+    /**
      * Set the text that will be shown as the title for the control
      *
      * @param text Set the title text
@@ -1713,6 +1746,7 @@ var searchDateTime = {
         var searchInput = new SearchInput(dt, this.idx())
             .type('date')
             .addClass('dtcc-searchDateTime')
+            .sspTransform(function (val) { return toISO(val, displayFormat, moment, luxon); })
             .clearable(config.clear)
             .placeholder(config.placeholder)
             .title(config.title)
@@ -1861,6 +1895,32 @@ function dateToNum(input, srcFormat, moment, luxon) {
     input = input.replace(/\//g, '-');
     return new Date(input).getTime();
 }
+/**
+ * Convert an input string to an ISO formatted date
+ *
+ * @param input Input value
+ * @param srcFormat String format of the input
+ * @param moment Moment instance, if it is available
+ * @param luxon Luxon object, if it is available
+ * @returns Value in ISO
+ */
+function toISO(input, srcFormat, moment, luxon) {
+    if (input === '') {
+        return '';
+    }
+    else if (srcFormat !== 'YYYY-MM-DD' && moment) {
+        // TODO Does it have a time component?
+        return moment(input, srcFormat).toISOString();
+    }
+    else if (srcFormat !== 'YYYY-MM-DD' && luxon) {
+        // TODO Does it have a time component?
+        return luxon.DateTime.fromFormat(input, srcFormat).toISO();
+    }
+    // new Date() with `/` separators will treat the input as local time, but with `-` it will
+    // treat it as UTC. We want UTC so do a replacement
+    input = input.replace(/\//g, '-');
+    return input;
+}
 
 /** Set the options to show in the list */
 function setOptions(checkList, opts) {
@@ -1937,7 +1997,7 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
         // No point in doing any further processing here
         return;
     }
-    else {
+    else if (!dt.page.info().serverSide) {
         // Either no ajax object (i.e. not an Ajax table), or no matching ajax options
         // for this column - get the values for the column, taking into account
         // orthogonal rendering
@@ -2032,6 +2092,15 @@ var searchList = {
                 dt.one('draw', function () {
                     reloadOptions(dt, config, _this.idx(), checkList, loadedValues);
                 });
+            });
+        }
+        // Data for server-side processing
+        if (dt.page.info().serverSide) {
+            dt.on('preXhr.DT', function (e, s, d) {
+                if (!d.columns[_this.idx()].columnControl) {
+                    d.columns[_this.idx()].columnControl = {};
+                }
+                d.columns[_this.idx()].columnControl.list = checkList.values();
             });
         }
         // Unlike the SearchInput based search contents, CheckList does not handle state saving
