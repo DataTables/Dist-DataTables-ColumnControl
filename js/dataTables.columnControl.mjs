@@ -1719,6 +1719,10 @@ var searchDateTime = {
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
         ])
             .search(function (searchType, searchTerm, loadingState) {
+            // When SSP, don't apply a filter here, SearchInput will add to the submit data
+            if (dt.page.info().serverSide) {
+                return;
+            }
             var column = dt.column(_this.idx());
             var search = searchTerm === ''
                 ? ''
@@ -2002,6 +2006,10 @@ var searchList = {
         // The search can be applied from a stored start at start up before the options are
         // available. It can also be applied by user input, so it is generalised into this function.
         var applySearch = function (values) {
+            // When SSP, don't do any client-side filtering
+            if (dt.page.info().serverSide) {
+                return;
+            }
             var col = dt.column(_this.idx());
             if (!values) {
                 return;
@@ -2125,6 +2133,10 @@ var searchNumber = {
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
         ])
             .search(function (searchType, searchTerm, loadingState) {
+            // When SSP, don't apply a filter here, SearchInput will add to the submit data
+            if (dt.page.info().serverSide) {
+                return;
+            }
             var column = dt.column(_this.idx());
             if (searchType === 'empty') {
                 column.search.fixed('dtcc', function (haystack) { return !haystack; });
@@ -2222,6 +2234,10 @@ var searchText = {
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
         ])
             .search(function (searchType, searchTerm, loadingState) {
+            // When SSP, don't apply a filter here, SearchInput will add to the submit data
+            if (dt.page.info().serverSide) {
+                return;
+            }
             var column = dt.column(_this.idx());
             searchTerm = searchTerm.toLowerCase();
             if (searchType === 'empty') {
