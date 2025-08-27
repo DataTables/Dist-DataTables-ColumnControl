@@ -856,7 +856,6 @@ var CheckList = /** @class */ (function () {
                 el.appendChild(btn.element());
             }
         }
-        console.log('buttons', buttons.length);
         this._dom.empty.style.display = buttons.length === 0 ? 'block' : 'none';
         el.style.display = buttons.length > 0 ? 'block' : 'none';
     };
