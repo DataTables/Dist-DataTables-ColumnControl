@@ -1689,6 +1689,8 @@ var SearchInput = /** @class */ (function () {
 var searchDateTime = {
     defaults: {
         clear: true,
+        format: '',
+        mask: '',
         placeholder: '',
         title: '',
         titleAttr: ''
@@ -1700,12 +1702,13 @@ var searchDateTime = {
         var luxon = DataTable.use('luxon');
         var dt = this.dt();
         var i18nBase = 'columnControl.search.datetime.';
-        var displayFormat = '';
+        var pickerFormat = '';
+        var dataSrcFormat = '';
         var dateTime;
         var searchInput = new SearchInput(dt, this.idx())
             .type('date')
             .addClass('dtcc-searchDateTime')
-            .sspTransform(function (val) { return toISO(val, displayFormat, moment, luxon); })
+            .sspTransform(function (val) { return toISO(val, pickerFormat, moment, luxon); })
             .clearable(config.clear)
             .placeholder(config.placeholder)
             .title(config.title)
@@ -1721,12 +1724,16 @@ var searchDateTime = {
             .search(function (searchType, searchTerm, loadingState) {
             // When SSP, don't apply a filter here, SearchInput will add to the submit data
             if (dt.page.info().serverSide) {
+                if (!loadingState) {
+                    dt.draw();
+                }
                 return;
             }
+            var mask = config.mask;
             var column = dt.column(_this.idx());
             var search = searchTerm === ''
                 ? ''
-                : dateToNum(dateTime && fromPicker ? dateTime.val() : searchTerm.trim(), displayFormat, moment, luxon);
+                : dateToNum(dateTime && fromPicker ? dateTime.val() : searchTerm.trim(), pickerFormat, moment, luxon, mask);
             if (searchType === 'empty') {
                 column.search.fixed('dtcc', function (haystack) { return !haystack; });
             }
@@ -1745,16 +1752,24 @@ var searchDateTime = {
                 // Use a function for matching - weak typing
                 // Note that the haystack in the search function is the rendered date - it
                 // might need to be converted back to a date
-                column.search.fixed('dtcc', function (haystack) { return dateToNum(haystack, displayFormat, moment, luxon) == search; });
+                column.search.fixed('dtcc', function (haystack) {
+                    return dateToNum(haystack, dataSrcFormat, moment, luxon, mask) == search;
+                });
             }
             else if (searchType === 'notEqual') {
-                column.search.fixed('dtcc', function (haystack) { return dateToNum(haystack, displayFormat, moment, luxon) != search; });
+                column.search.fixed('dtcc', function (haystack) {
+                    return dateToNum(haystack, dataSrcFormat, moment, luxon, mask) != search;
+                });
             }
             else if (searchType === 'greater') {
-                column.search.fixed('dtcc', function (haystack) { return dateToNum(haystack, displayFormat, moment, luxon) > search; });
+                column.search.fixed('dtcc', function (haystack) {
+                    return dateToNum(haystack, dataSrcFormat, moment, luxon, mask) > search;
+                });
             }
             else if (searchType === 'less') {
-                column.search.fixed('dtcc', function (haystack) { return dateToNum(haystack, displayFormat, moment, luxon) < search; });
+                column.search.fixed('dtcc', function (haystack) {
+                    return dateToNum(haystack, dataSrcFormat, moment, luxon, mask) < search;
+                });
             }
             // If in a dropdown, set the parent levels as active
             if (config._parents) {
@@ -1769,10 +1784,13 @@ var searchDateTime = {
         // Once data has been loaded we can run DateTime with the specified format
         dt.ready(function () {
             var DateTime = DataTable.use('datetime');
-            displayFormat = getFormat(dt, _this.idx());
+            dataSrcFormat = getFormat(dt, _this.idx());
+            pickerFormat = config.format
+                ? config.format
+                : dataSrcFormat;
             if (DateTime) {
                 dateTime = new DateTime(searchInput.input(), {
-                    format: displayFormat,
+                    format: pickerFormat,
                     i18n: dt.settings()[0].oLanguage.datetime, // could be undefined
                     onChange: function () {
                         fromPicker = true;
@@ -1799,18 +1817,36 @@ function getFormat(dt, column) {
         return 'YYYY-MM-DD';
     }
     else if (type === 'datetime') {
-        // If no format was specified in the DT type, then we need to use Moment / Luxon's default
-        // locale formatting.
-        var moment = DataTable.use('moment');
-        var luxon = DataTable.use('luxon');
-        if (moment) {
-            return moment().creationData().locale._longDateFormat.L;
+        // If no format was specified in the DT type, a Javascript native toLocaleDateString
+        // was used. Need to work out what that format is in Moment or Luxon. We need to pass
+        // a known value though the renderer and work out the format
+        var renderer = dt.settings()[0].aoColumns[column].mRender;
+        var resultPm = renderer('1999-08-07T23:05:04Z', 'display');
+        var resultAm = renderer('1999-08-07T03:05:04Z', 'display');
+        var leadingZero = resultAm.includes('03');
+        // What formatter are we using?
+        if (DataTable.use('moment')) {
+            return resultPm
+                .replace('23', leadingZero ? 'HH' : 'H')
+                .replace('11', leadingZero ? 'hh' : 'h')
+                .replace('05', 'mm')
+                .replace('04', 'ss')
+                .replace('PM', 'A')
+                .replace('pm', 'a')
+                .replace('07', 'DD')
+                .replace('7', 'D')
+                .replace('08', 'MM')
+                .replace('8', 'M')
+                .replace('1999', 'YYYY')
+                .replace('99', 'YY');
         }
-        if (luxon) {
-            // Luxon doesn't appear to provide a way to let us get the default locale formatting
-            // string, so we need to attempt to decode it.
-            return luxon.DateTime.fromISO('1999-08-07')
-                .toLocaleString()
+        else if (DataTable.use('luxon')) {
+            return resultPm
+                .replace('23', leadingZero ? 'HH' : 'H')
+                .replace('11', leadingZero ? 'hh' : 'h')
+                .replace('05', 'mm')
+                .replace('04', 'ss')
+                .replace('PM', 'a')
                 .replace('07', 'dd')
                 .replace('7', 'd')
                 .replace('08', 'MM')
@@ -1818,6 +1854,13 @@ function getFormat(dt, column) {
                 .replace('1999', 'yyyy')
                 .replace('99', 'yy');
         }
+        else if (resultPm.includes('23') && resultPm.includes('1999')) {
+            return 'YYYY-MM-DD hh:mm:ss';
+        }
+        else if (resultPm.includes('23')) {
+            return 'hh:mm:ss';
+        }
+        // fall through to final return
     }
     else if (type.includes('datetime-')) {
         // Column was specified with a particular display format - we can extract that format from
@@ -1841,22 +1884,49 @@ function getFormat(dt, column) {
  * @param luxon Luxon object, if it is available
  * @returns Time stamp - milliseconds
  */
-function dateToNum(input, srcFormat, moment, luxon) {
+function dateToNum(input, srcFormat, moment, luxon, mask) {
+    var d;
     if (input === '') {
         return '';
     }
-    else if (input instanceof Date) {
-        return input.getTime();
+    if (input instanceof Date) {
+        d = input;
     }
     else if (srcFormat !== 'YYYY-MM-DD' && (moment || luxon)) {
-        return moment
+        d = new Date(moment
             ? moment(input, srcFormat).unix() * 1000
-            : luxon.DateTime.fromFormat(input, srcFormat).toMillis();
+            : luxon.DateTime.fromFormat(input, srcFormat).toMillis());
     }
-    // new Date() with `/` separators will treat the input as local time, but with `-` it will
-    // treat it as UTC. We want UTC so do a replacement
-    input = input.replace(/\//g, '-');
-    return new Date(input).getTime();
+    else {
+        // new Date() with `/` separators will treat the input as local time, but with `-` it will
+        // treat it as UTC. We want UTC so do a replacement
+        d = new Date(input.replace(/\//g, '-'));
+    }
+    if (mask) {
+        if (!mask.includes('YYYY')) {
+            d.setFullYear(1970);
+        }
+        if (!mask.includes('MM')) {
+            d.setUTCMonth(0);
+        }
+        if (!mask.includes('DD')) {
+            d.setUTCDate(1);
+        }
+        if (!mask.includes('hh')) {
+            d.setUTCHours(0);
+        }
+        if (!mask.includes('mm')) {
+            d.setUTCMinutes(0);
+        }
+        if (!mask.includes('ss')) {
+            // This will match milliseconds as well, but that's fine, you won't match mS but not S
+            d.setUTCSeconds(0);
+        }
+        if (!mask.includes('sss')) {
+            d.setUTCMilliseconds(0);
+        }
+    }
+    return d.getTime();
 }
 /**
  * Convert an input string to an ISO formatted date
@@ -1873,7 +1943,7 @@ function toISO(input, srcFormat, moment, luxon) {
     }
     else if (srcFormat !== 'YYYY-MM-DD' && moment) {
         // TODO Does it have a time component?
-        return moment(input, srcFormat).toISOString();
+        return moment.utc(input, srcFormat).toISOString();
     }
     else if (srcFormat !== 'YYYY-MM-DD' && luxon) {
         // TODO Does it have a time component?
@@ -2135,6 +2205,9 @@ var searchNumber = {
             .search(function (searchType, searchTerm, loadingState) {
             // When SSP, don't apply a filter here, SearchInput will add to the submit data
             if (dt.page.info().serverSide) {
+                if (!loadingState) {
+                    dt.draw();
+                }
                 return;
             }
             var column = dt.column(_this.idx());
@@ -2236,6 +2309,9 @@ var searchText = {
             .search(function (searchType, searchTerm, loadingState) {
             // When SSP, don't apply a filter here, SearchInput will add to the submit data
             if (dt.page.info().serverSide) {
+                if (!loadingState) {
+                    dt.draw();
+                }
                 return;
             }
             var column = dt.column(_this.idx());
