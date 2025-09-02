@@ -1451,6 +1451,7 @@ var SearchInput = /** @class */ (function () {
         var _this = this;
         this._type = 'text';
         this._sspTransform = null;
+        this._sspData = {};
         this._dt = dt;
         this._idx = idx;
         this._dom = {
@@ -1528,11 +1529,11 @@ var SearchInput = /** @class */ (function () {
                 if (_this._sspTransform) {
                     val = _this._sspTransform(val);
                 }
-                d.columns[_this._idx].columnControl.search = {
+                d.columns[_this._idx].columnControl.search = Object.assign({
                     value: val,
                     logic: _this._dom.select.value,
                     type: _this._type
-                };
+                }, _this._sspData);
             });
         }
     }
@@ -1668,6 +1669,16 @@ var SearchInput = /** @class */ (function () {
         return this;
     };
     /**
+     * Set extra information to be send to the server for server-side processing
+     *
+     * @param data Data object
+     * @returns Self for chaining
+     */
+    SearchInput.prototype.sspData = function (data) {
+        this._sspData = data;
+        return this;
+    };
+    /**
      * Set the text that will be shown as the title for the control
      *
      * @param text Set the title text
@@ -1749,6 +1760,7 @@ var searchDateTime = {
             .type('date')
             .addClass('dtcc-searchDateTime')
             .sspTransform(function (val) { return toISO(val, pickerFormat, moment, luxon); })
+            .sspData({ mask: config.mask })
             .clearable(config.clear)
             .placeholder(config.placeholder)
             .title(config.title)
