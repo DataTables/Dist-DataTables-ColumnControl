@@ -2189,7 +2189,8 @@ var searchList = {
                 if (!d.columns[_this.idx()].columnControl) {
                     d.columns[_this.idx()].columnControl = {};
                 }
-                d.columns[_this.idx()].columnControl.list = checkList.values();
+                // We need the indexes in the HTTP parameter names (for .NET), so use an object.
+                d.columns[_this.idx()].columnControl.list = Object.assign({}, checkList.values());
             });
         }
         // Unlike the SearchInput based search contents, CheckList does not handle state saving
