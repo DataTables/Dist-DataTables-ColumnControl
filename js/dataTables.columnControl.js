@@ -769,7 +769,7 @@ var CheckList = /** @class */ (function () {
      */
     CheckList.prototype.searchListener = function (dt) {
         var _this = this;
-        // Column control search clearing (column().ccSearchClear() method)
+        // Column control search clearing (column().columnControl.searchClear() method)
         dt.on('cc-search-clear', function (e, colIdx) {
             if (colIdx === _this._s.host.idx()) {
                 _this.selectNone();
@@ -1513,7 +1513,7 @@ var SearchInput = /** @class */ (function () {
         dt.on('columns-reordered.DT', function (e, details) {
             _this._idx = dt.colReorder.transpose(originalIdx, 'fromOriginal');
         });
-        // Column control search clearing (column().ccSearchClear() method)
+        // Column control search clearing (column().columnControl.searchClear() method)
         dt.on('cc-search-clear.DT', function (e, colIdx) {
             if (colIdx === _this._idx) {
                 // Don't want an automatic redraw on this event
@@ -2221,6 +2221,14 @@ var searchList = {
                 ? checkList.values()
                 : loadedValues;
         });
+        dt.settings()[0].aoColumns[this.idx()].columnControlSearchList = function (options) {
+            if (options === 'refresh') {
+                reloadOptions(dt, config, _this.idx(), checkList, null);
+            }
+            else {
+                setOptions(checkList, options);
+            }
+        };
         loadedValues = getState(this.idx(), dt.state.loaded());
         applySearch(loadedValues);
         return checkList.element();
@@ -2476,7 +2484,7 @@ var search = {
     }
 };
 
-var searchClear = {
+var searchClear$1 = {
     defaults: {
         className: 'searchClear',
         icon: 'searchClear',
@@ -2490,7 +2498,7 @@ var searchClear = {
             .icon(config.icon)
             .className(config.className)
             .handler(function () {
-            dt.column(_this.idx()).ccSearchClear().draw();
+            dt.column(_this.idx()).columnControl.searchClear().draw();
         })
             .enable(false);
         dt.on('draw', function () {
@@ -2582,7 +2590,7 @@ var contentTypes = {
     orderRemove: orderRemove,
     orderStatus: orderStatus,
     search: search,
-    searchClear: searchClear,
+    searchClear: searchClear$1,
     searchDropdown: searchDropdown,
     searchDateTime: searchDateTime,
     searchList: searchList,
@@ -2848,11 +2856,19 @@ $(document).on('preInit.dt', function (e, settings) {
         }
     });
 });
-DataTable.Api.registerPlural('columns().ccSearchClear()', 'column().ccSearchClear()', function () {
+function searchClear() {
     var ctx = this;
     return this.iterator('column', function (settings, idx) {
         // Note that the listeners for this will not redraw the table.
         ctx.trigger('cc-search-clear', [idx]);
+    });
+}
+DataTable.Api.registerPlural('columns().columnControl.searchClear()', 'column().columnControl.searchClear()', searchClear);
+// Legacy (1.0.x)) - was never documented, but was mentioned in the forum
+DataTable.Api.registerPlural('columns().ccSearchClear()', 'column().ccSearchClear()', searchClear);
+DataTable.Api.registerPlural('columns().columnControl.searchList()', 'column().columnControl.searchList()', function (options) {
+    return this.iterator('column', function (settings, idx) {
+        settings.aoColumns[idx].columnControlSearchList(options);
     });
 });
 DataTable.ext.buttons.ccSearchClear = {
@@ -2878,7 +2894,7 @@ DataTable.ext.buttons.ccSearchClear = {
     },
     action: function (e, dt, node, config) {
         dt.search('');
-        dt.columns().ccSearchClear();
+        dt.columns().columnControl.searchClear();
         dt.draw();
     }
 };
@@ -3040,9 +3056,7 @@ function identifyTargets(targets, input) {
  * @returns true if it is a config object
  */
 function isIConfig(item) {
-    return typeof item === 'object' && item.target !== undefined
-        ? true
-        : false;
+    return typeof item === 'object' && item.target !== undefined ? true : false;
 }
 /**
  * Determine if an array contains only content items or not
