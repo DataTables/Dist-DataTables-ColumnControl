@@ -653,7 +653,7 @@ var CheckList = /** @class */ (function () {
                 .icon(option.icon || '')
                 .text(option.label !== ''
                 ? option.label
-                : this_1._s.dt.i18n('columnControl.list.emptyOption', 'Empty'))
+                : this_1._s.dt.i18n('columnControl.list.empty', 'Empty'))
                 .value(option.value);
             if (option.label === '') {
                 btn.className('empty');
