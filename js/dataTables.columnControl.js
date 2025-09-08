@@ -216,6 +216,7 @@ function attachDropdown(dropdown, dt, btn) {
     dropdown._shown = true;
     dtContainer.append(dropdown);
     positionDropdown(dropdown, dt, btn.element());
+    btn.element().setAttribute('aria-expanded', 'true');
     // Note that this could be called when the dropdown has already been removed from the document
     // via another dropdown being shown. This will clean up the event on the next body click.
     var removeDropdown = function (e) {
@@ -331,6 +332,7 @@ var dropdownContent = {
         dropdown._close = function () {
             dropdown.remove();
             dropdown._shown = false;
+            btn.element().setAttribute('aria-expanded', 'false');
         };
         dropdown.setAttribute('role', 'dialog');
         dropdown.setAttribute('aria-label', dt.i18n('columnControl.dropdown', config.text));
@@ -362,6 +364,7 @@ var dropdownContent = {
             }
         });
         btn.element().setAttribute('aria-haspopup', 'dialog');
+        btn.element().setAttribute('aria-expanded', 'false');
         // Add the content for the dropdown
         for (var i = 0; i < config.content.length; i++) {
             var content = this.resolve(config.content[i]);
