@@ -2828,7 +2828,10 @@ DataTable.Api.registerPlural('columns().columnControl.searchClear()', 'column().
 DataTable.Api.registerPlural('columns().ccSearchClear()', 'column().ccSearchClear()', searchClear);
 DataTable.Api.registerPlural('columns().columnControl.searchList()', 'column().columnControl.searchList()', function (options) {
     return this.iterator('column', function (settings, idx) {
-        settings.aoColumns[idx].columnControlSearchList(options);
+        var fn = settings.aoColumns[idx].columnControlSearchList;
+        if (fn) {
+            fn(options);
+        }
     });
 });
 DataTable.ext.buttons.ccSearchClear = {
