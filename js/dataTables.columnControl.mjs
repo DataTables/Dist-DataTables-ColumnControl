@@ -1485,6 +1485,10 @@ var SearchInput = /** @class */ (function () {
         // Data for server-side processing
         if (dt.page.info().serverSide) {
             dt.on('preXhr.DT', function (e, s, d) {
+                // The column has been removed from the submit data - can't do anything
+                if (!d.columns || !d.columns[_this._idx]) {
+                    return;
+                }
                 if (!d.columns[_this._idx].columnControl) {
                     d.columns[_this._idx].columnControl = {};
                 }
@@ -2149,6 +2153,10 @@ var searchList = {
         // Data for server-side processing
         if (dt.page.info().serverSide) {
             dt.on('preXhr.DT', function (e, s, d) {
+                // The column has been removed from the submit data - can't do anything
+                if (!d.columns || !d.columns[_this.idx()]) {
+                    return;
+                }
                 if (!d.columns[_this.idx()].columnControl) {
                     d.columns[_this.idx()].columnControl = {};
                 }
