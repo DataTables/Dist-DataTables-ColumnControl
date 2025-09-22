@@ -965,13 +965,9 @@ var reorder = {
         var btn = new Button(dt, this)
             .text(dt.i18n('columnControl.reorder', config.text))
             .icon(config.icon)
-            .className(config.className)
-            .handler(function () {
-            var idx = _this.idx();
-            if (idx > 0) {
-                dt.colReorder.move(idx, idx - 1);
-            }
-        });
+            .className(config.className);
+        // The event handling for this is done in ColReorder._addListener - no event
+        // handler needed here for click / drag
         if (this.idx() === 0) {
             btn.enable(false);
         }
