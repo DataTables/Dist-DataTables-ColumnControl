@@ -1777,6 +1777,12 @@ var searchDateTime = {
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
         ])
             .search(function (searchType, searchTerm, loadingState) {
+            // If in a dropdown, set the parent levels as active
+            if (config._parents) {
+                config._parents.forEach(function (btn) {
+                    return btn.activeList(_this.unique(), searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm);
+                });
+            }
             // When SSP, don't apply a filter here, SearchInput will add to the submit data
             if (dt.page.info().serverSide) {
                 if (!loadingState) {
@@ -1824,12 +1830,6 @@ var searchDateTime = {
             else if (searchType === 'less') {
                 column.search.fixed('dtcc', function (haystack) {
                     return dateToNum(haystack, dataSrcFormat, moment, luxon, mask) < search;
-                });
-            }
-            // If in a dropdown, set the parent levels as active
-            if (config._parents) {
-                config._parents.forEach(function (btn) {
-                    return btn.activeList(_this.unique(), !!column.search.fixed('dtcc'));
                 });
             }
             if (!loadingState) {
@@ -2131,6 +2131,10 @@ var searchList = {
         // The search can be applied from a stored start at start up before the options are
         // available. It can also be applied by user input, so it is generalised into this function.
         var applySearch = function (values) {
+            // If in a dropdown, set the parent levels as active
+            if (config._parents) {
+                config._parents.forEach(function (btn) { return btn.activeList(_this.unique(), values && !!values.length); });
+            }
             // When SSP, don't do any client-side filtering
             if (dt.page.info().serverSide) {
                 return;
@@ -2148,10 +2152,6 @@ var searchList = {
                 col.search.fixed('dtcc-list', function (val) {
                     return values.includes(val);
                 });
-            }
-            // If in a dropdown, set the parent levels as active
-            if (config._parents) {
-                config._parents.forEach(function (btn) { return btn.activeList(_this.unique(), !!values.length); });
             }
         };
         var checkList = new CheckList(dt, this, {
@@ -2271,6 +2271,12 @@ var searchNumber = {
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
         ])
             .search(function (searchType, searchTerm, loadingState) {
+            // If in a dropdown, set the parent levels as active
+            if (config._parents) {
+                config._parents.forEach(function (btn) {
+                    return btn.activeList(_this.unique(), searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm);
+                });
+            }
             // When SSP, don't apply a filter here, SearchInput will add to the submit data
             if (dt.page.info().serverSide) {
                 if (!loadingState) {
@@ -2311,12 +2317,6 @@ var searchNumber = {
             }
             else if (searchType === 'lessOrEqual') {
                 column.search.fixed('dtcc', function (haystack) { return stringToNum(haystack) <= searchTerm; });
-            }
-            // If in a dropdown, set the parents as active
-            if (config._parents) {
-                config._parents.forEach(function (btn) {
-                    return btn.activeList(_this.unique(), !!column.search.fixed('dtcc'));
-                });
             }
             if (!loadingState) {
                 column.draw();
@@ -2375,6 +2375,12 @@ var searchText = {
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
         ])
             .search(function (searchType, searchTerm, loadingState) {
+            // If in a dropdown, set the parent levels as active
+            if (config._parents) {
+                config._parents.forEach(function (btn) {
+                    return btn.activeList(_this.unique(), searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm);
+                });
+            }
             // When SSP, don't apply a filter here, SearchInput will add to the submit data
             if (dt.page.info().serverSide) {
                 if (!loadingState) {
