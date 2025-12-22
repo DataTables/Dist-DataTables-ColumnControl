@@ -1743,15 +1743,20 @@ var searchDateTime = {
                     return btn.activeList(_this.unique(), searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm);
                 });
             }
+            var column = dt.column(_this.idx());
             // When SSP, don't apply a filter here, SearchInput will add to the submit data
             if (dt.page.info().serverSide) {
+                // Need to let the searchClear button know if we have a filter
+                // applied though.
+                column.init().__ccList = !!(searchType === 'empty' ||
+                    searchType === 'notEmpty' ||
+                    searchTerm);
                 if (!loadingState) {
                     dt.draw();
                 }
                 return;
             }
             var mask = config.mask;
-            var column = dt.column(_this.idx());
             var search = searchTerm === ''
                 ? ''
                 : dateToNum(dateTime && fromPicker ? dateTime.val() : searchTerm.trim(), pickerFormat, moment, luxon, mask);
@@ -2095,11 +2100,14 @@ var searchList = {
             if (config._parents) {
                 config._parents.forEach(function (btn) { return btn.activeList(_this.unique(), values && !!values.length); });
             }
+            var col = dt.column(_this.idx());
             // When SSP, don't do any client-side filtering
             if (dt.page.info().serverSide) {
+                // Need to let the searchClear button know if we have a filter
+                // applied though.
+                col.init().__ccList = values && values.length !== 0;
                 return;
             }
-            var col = dt.column(_this.idx());
             if (!values) {
                 return;
             }
@@ -2237,14 +2245,20 @@ var searchNumber = {
                     return btn.activeList(_this.unique(), searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm);
                 });
             }
-            // When SSP, don't apply a filter here, SearchInput will add to the submit data
+            var column = dt.column(_this.idx());
+            // When SSP, don't apply a filter here, SearchInput will add to
+            // the submit data
             if (dt.page.info().serverSide) {
+                // Need to let the searchClear button know if we have a filter
+                // applied though.
+                column.init().__ccList = !!(searchType === 'empty' ||
+                    searchType === 'notEmpty' ||
+                    searchTerm);
                 if (!loadingState) {
                     dt.draw();
                 }
                 return;
             }
-            var column = dt.column(_this.idx());
             if (searchType === 'empty') {
                 column.search.fixed('dtcc', function (haystack) { return !haystack; });
             }
@@ -2341,14 +2355,19 @@ var searchText = {
                     return btn.activeList(_this.unique(), searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm);
                 });
             }
+            var column = dt.column(_this.idx());
             // When SSP, don't apply a filter here, SearchInput will add to the submit data
             if (dt.page.info().serverSide) {
+                // Need to let the searchClear button know if we have a filter
+                // applied though.
+                column.init().__ccList = !!(searchType === 'empty' ||
+                    searchType === 'notEmpty' ||
+                    searchTerm);
                 if (!loadingState) {
                     dt.draw();
                 }
                 return;
             }
-            var column = dt.column(_this.idx());
             searchTerm = searchTerm.toLowerCase();
             if (searchType === 'empty') {
                 column.search.fixed('dtcc', function (haystack) { return !haystack; });
@@ -2473,9 +2492,12 @@ var searchClear$1 = {
             .enable(false);
         dt.on('draw', function () {
             // change enable state
-            var search = dt.column(_this.idx()).search.fixed('dtcc');
-            var searchList = dt.column(_this.idx()).search.fixed('dtcc-list');
-            btn.enable(!!(search || searchList));
+            var col = dt.column(_this.idx());
+            var search = col.search.fixed('dtcc');
+            var searchList = col.search.fixed('dtcc-list');
+            var searchSearchSsp = col.init().__ccSearch;
+            var searchListSsp = col.init().__ccList;
+            btn.enable(!!(search || searchList || searchSearchSsp || searchListSsp));
         });
         return btn.element();
     }
