@@ -2190,9 +2190,11 @@ var searchList = {
                 // Need to wait for the draw to complete so the table has the latest data
                 dt.one('draw', function () {
                     reloadOptions(dt, config, _this.idx(), checkList, loadedValues);
+                    loadedValues = null;
                 });
             });
         }
+        var sspValues = [];
         // Data for server-side processing
         if (dt.page.info().serverSide) {
             dt.on('preXhr.DT', function (e, s, d) {
@@ -2203,8 +2205,10 @@ var searchList = {
                 if (!d.columns[_this.idx()].columnControl) {
                     d.columns[_this.idx()].columnControl = {};
                 }
+                var values = sspValues.length ? sspValues : checkList.values();
+                sspValues = [];
                 // We need the indexes in the HTTP parameter names (for .NET), so use an object.
-                d.columns[_this.idx()].columnControl.list = Object.assign({}, checkList.values());
+                d.columns[_this.idx()].columnControl.list = Object.assign({}, values);
             });
         }
         // Unlike the SearchInput based search contents, CheckList does not handle state saving
@@ -2242,6 +2246,11 @@ var searchList = {
         };
         loadedValues = getState(this.idx(), dt.state.loaded());
         applySearch(loadedValues);
+        // If SSP, then there are no options yet, so for a saved state we need
+        // to use the values from the state in a temporary variable
+        if (dt.page.info().serverSide && loadedValues && loadedValues.length) {
+            sspValues = loadedValues;
+        }
         return checkList.element();
     }
 };
@@ -2473,15 +2482,15 @@ var search = {
     },
     init: function (config) {
         var _this = this;
-        var _a, _b, _c;
+        var _a, _b;
         var dt = this.dt();
         var idx = this.idx();
         var displayEl;
-        var loadedState = (_c = (_b = (_a = dt.state.loaded()) === null || _a === void 0 ? void 0 : _a.columnControl) === null || _b === void 0 ? void 0 : _b[idx]) === null || _c === void 0 ? void 0 : _c.searchInput;
+        var loadedState = (_b = (_a = dt.state.loaded()) === null || _a === void 0 ? void 0 : _a.columnControl) === null || _b === void 0 ? void 0 : _b[idx];
         var initType = function (type) {
             var json = getJsonOptions(dt, idx);
             // Attempt to match what type of search should be shown
-            if (config.allowSearchList && json) {
+            if (type === 'list' || (config.allowSearchList && json)) {
                 // We've got a list of JSON options, and are allowed to show the searchList
                 return searchList.init.call(_this, Object.assign({}, searchList.defaults, config));
             }
@@ -2502,7 +2511,12 @@ var search = {
         // to allow the state to be applied to the table and the first draw to have a filter
         // applied (if it is needed).
         if (loadedState) {
-            displayEl = initType(loadedState.type);
+            if (loadedState.searchInput) {
+                displayEl = initType(loadedState.searchInput.type);
+            }
+            else if (loadedState.searchList) {
+                displayEl = initType('list');
+            }
         }
         else {
             // Wait until we can get the data type for the column and the run the corresponding type
