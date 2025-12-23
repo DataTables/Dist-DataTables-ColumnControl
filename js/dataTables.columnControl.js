@@ -1743,6 +1743,7 @@ var SearchInput = /** @class */ (function () {
 var searchDateTime = {
     defaults: {
         clear: true,
+        excludeLogic: [],
         format: '',
         mask: '',
         placeholder: '',
@@ -1775,7 +1776,7 @@ var searchDateTime = {
             { label: dt.i18n(i18nBase + 'less', 'Before'), value: 'less' },
             { label: dt.i18n(i18nBase + 'empty', 'Empty'), value: 'empty' },
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
-        ])
+        ].filter(function (x) { return !config.excludeLogic.includes(x.value); }))
             .search(function (searchType, searchTerm, loadingState) {
             // If in a dropdown, set the parent levels as active
             if (config._parents) {
@@ -1845,9 +1846,7 @@ var searchDateTime = {
         dt.ready(function () {
             var DateTime = DataTable.use('datetime');
             dataSrcFormat = getFormat(dt, _this.idx());
-            pickerFormat = config.format
-                ? config.format
-                : dataSrcFormat;
+            pickerFormat = config.format ? config.format : dataSrcFormat;
             if (DateTime) {
                 dateTime = new DateTime(searchInput.input(), {
                     format: pickerFormat,
@@ -2250,6 +2249,7 @@ var searchList = {
 var searchNumber = {
     defaults: {
         clear: true,
+        excludeLogic: [],
         placeholder: '',
         title: '',
         titleAttr: ''
@@ -2274,10 +2274,13 @@ var searchNumber = {
                 value: 'greaterOrEqual'
             },
             { label: dt.i18n(i18nBase + 'less', 'Less than'), value: 'less' },
-            { label: dt.i18n(i18nBase + 'lessOrEqual', 'Less or equal'), value: 'lessOrEqual' },
+            {
+                label: dt.i18n(i18nBase + 'lessOrEqual', 'Less or equal'),
+                value: 'lessOrEqual'
+            },
             { label: dt.i18n(i18nBase + 'empty', 'Empty'), value: 'empty' },
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
-        ])
+        ].filter(function (x) { return !config.excludeLogic.includes(x.value); }))
             .search(function (searchType, searchTerm, loadingState) {
             // If in a dropdown, set the parent levels as active
             if (config._parents) {
@@ -2361,6 +2364,7 @@ function stringToNum(d) {
 var searchText = {
     defaults: {
         clear: true,
+        excludeLogic: [],
         placeholder: '',
         title: '',
         titleAttr: ''
@@ -2387,7 +2391,7 @@ var searchText = {
             { label: dt.i18n(i18nBase + 'ends', 'Ends'), value: 'ends' },
             { label: dt.i18n(i18nBase + 'empty', 'Empty'), value: 'empty' },
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
-        ])
+        ].filter(function (x) { return !config.excludeLogic.includes(x.value); }))
             .search(function (searchType, searchTerm, loadingState) {
             // If in a dropdown, set the parent levels as active
             if (config._parents) {
