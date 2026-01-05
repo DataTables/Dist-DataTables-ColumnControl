@@ -1975,20 +1975,21 @@ function toISO(input, srcFormat, moment, luxon) {
 }
 
 /** Set the options to show in the list */
-function setOptions(checkList, opts) {
+function setOptions(checkList, opts, activeList) {
+    if (activeList === void 0) { activeList = []; }
     var existing = checkList.values();
     checkList.clear();
     for (var i = 0; i < opts.length; i++) {
         if (typeof opts[i] === 'object') {
             checkList.add({
-                active: false,
+                active: activeList.includes(opts[i].value),
                 label: opts[i].label,
                 value: opts[i].value
             }, i === opts.length - 1);
         }
         else {
             checkList.add({
-                active: false,
+                active: activeList.includes(opts[i]),
                 label: opts[i],
                 value: opts[i]
             }, i === opts.length - 1);
@@ -2138,8 +2139,9 @@ var searchList = {
                 dt.draw();
             }
         });
+        loadedValues = getState(this.idx(), dt.state.loaded());
         if (config.options) {
-            setOptions(checkList, config.options);
+            setOptions(checkList, config.options, loadedValues);
         }
         else {
             dt.ready(function () {
@@ -2204,7 +2206,6 @@ var searchList = {
                 setOptions(checkList, options);
             }
         };
-        loadedValues = getState(this.idx(), dt.state.loaded());
         applySearch(loadedValues);
         // If SSP, then there are no options yet, so for a saved state we need
         // to use the values from the state in a temporary variable
