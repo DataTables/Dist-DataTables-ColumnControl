@@ -1406,13 +1406,14 @@ var SearchInput = /** @class */ (function () {
     /**
      * Create a container element, for consistent DOM structure and styling
      */
-    function SearchInput(dt, idx) {
+    function SearchInput(dt, idx, columnUnique) {
         var _this = this;
         this._type = 'text';
         this._sspTransform = null;
         this._sspData = {};
         this._dt = dt;
         this._idx = idx;
+        this._colUnique = columnUnique;
         this._dom = {
             clear: createElement('span', 'dtcc-search-clear', icons['x']),
             container: createElement('div', SearchInput.classes.container),
@@ -1453,10 +1454,10 @@ var SearchInput = /** @class */ (function () {
             if (!data.columnControl) {
                 data.columnControl = {};
             }
-            if (!data.columnControl[_this._idx]) {
-                data.columnControl[_this._idx] = {};
+            if (!data.columnControl[_this._colUnique]) {
+                data.columnControl[_this._colUnique] = {};
             }
-            data.columnControl[_this._idx].searchInput = {
+            data.columnControl[_this._colUnique].searchInput = {
                 logic: dom.select.value,
                 type: _this._type,
                 value: dom.input.value
@@ -1679,7 +1680,7 @@ var SearchInput = /** @class */ (function () {
     SearchInput.prototype._stateLoad = function (state) {
         var _a, _b;
         var dom = this._dom;
-        var idx = this._idx;
+        var idx = this._colUnique;
         var loadedState = (_b = (_a = state === null || state === void 0 ? void 0 : state.columnControl) === null || _a === void 0 ? void 0 : _a[idx]) === null || _b === void 0 ? void 0 : _b.searchInput;
         if (loadedState) {
             // The search callback needs to know if we are loading an existing state or not
@@ -1720,7 +1721,7 @@ var searchDateTime = {
         var pickerFormat = '';
         var dataSrcFormat = '';
         var dateTime;
-        var searchInput = new SearchInput(dt, this.idx())
+        var searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
             .type('date')
             .addClass('dtcc-searchDateTime')
             .sspTransform(function (val) { return toISO(val, pickerFormat, moment, luxon); })
@@ -2177,20 +2178,21 @@ var searchList = {
         // (since the mechanism for column visibility is different), so state saving is handled
         // here.
         dt.on('stateLoaded', function (e, s, state) {
-            var values = getState(_this.idx(), state);
+            var values = getState(_this.idxOriginal(), state);
             if (values) {
                 checkList.values(values);
                 applySearch(values);
             }
         });
         dt.on('stateSaveParams', function (e, s, data) {
-            var idx = _this.idx();
+            var idx = _this.idxOriginal();
             if (!data.columnControl) {
                 data.columnControl = {};
             }
             if (!data.columnControl[idx]) {
                 data.columnControl[idx] = {};
             }
+            console.log('saving', _this.idxOriginal(), checkList.values());
             // If the table isn't yet ready, then the options for the list won't have been
             // populated (above) and therefore there can't be an values. In such a case
             // use the last saved values and this will refresh on the next draw.
@@ -2228,7 +2230,7 @@ var searchNumber = {
         var _this = this;
         var dt = this.dt();
         var i18nBase = 'columnControl.search.number.';
-        var searchInput = new SearchInput(dt, this.idx())
+        var searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
             .type('num')
             .addClass('dtcc-searchNumber')
             .clearable(config.clear)
@@ -2343,7 +2345,7 @@ var searchText = {
         var _this = this;
         var dt = this.dt();
         var i18nBase = 'columnControl.search.text.';
-        var searchInput = new SearchInput(dt, this.idx())
+        var searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
             .addClass('dtcc-searchText')
             .clearable(config.clear)
             .placeholder(config.placeholder)
@@ -2700,6 +2702,20 @@ var ColumnControl = /** @class */ (function () {
      */
     ColumnControl.prototype.idx = function () {
         return this._s.columnIdx;
+    };
+    /**
+     * Get the column index that was originally used for initialisation of this
+     * column. This is important when used with ColReorder and when arrays can
+     * be reordered (i.e. state saving on initialisation).
+     *
+     * @returns Column index
+     */
+    ColumnControl.prototype.idxOriginal = function () {
+        var currentIdx = this.idx();
+        if (this._dt.colReorder) {
+            return this._dt.colReorder.transpose(currentIdx, 'toOriginal');
+        }
+        return currentIdx;
     };
     /**
      * Covert the options from `content` in the DataTable initialisation for this instance into a
