@@ -1,5 +1,4 @@
 {
-    "version": "0.0.1",
     "name": "datatables.net/datatables.net-columncontrol",
     "description": "ColumnControl lets you add column specific control content to the header and footer of a DataTable. Built-in content types include ordering buttons, search inputs and search lists. The content shown is fully configurable to suit your use cases. This is ColumnControl for DataTables",
     "support": {
