@@ -2192,7 +2192,6 @@ var searchList = {
             if (!data.columnControl[idx]) {
                 data.columnControl[idx] = {};
             }
-            console.log('saving', _this.idxOriginal(), checkList.values());
             // If the table isn't yet ready, then the options for the list won't have been
             // populated (above) and therefore there can't be an values. In such a case
             // use the last saved values and this will refresh on the next draw.
@@ -2481,7 +2480,7 @@ var search = {
                 displayEl = initType('list');
             }
         }
-        else {
+        if (!displayEl) {
             // Wait until we can get the data type for the column and the run the corresponding type
             displayEl = document.createElement('div');
             dt.ready(function () {
