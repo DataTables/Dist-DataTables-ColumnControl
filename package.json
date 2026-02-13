@@ -4,7 +4,7 @@
     "main": "js/dataTables.columnControl.js",
     "module": "js/dataTables.columnControl.mjs",
     "types": "./types/types.d.ts",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "files": [
         "js/**/*.js",
         "js/**/*.mjs",
