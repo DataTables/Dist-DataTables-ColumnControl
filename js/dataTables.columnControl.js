@@ -1759,6 +1759,10 @@ var searchDateTime = {
         var pickerFormat = '';
         var dataSrcFormat = '';
         var dateTime;
+        var resolveFormats = function () {
+            dataSrcFormat = getFormat(dt, _this.idx());
+            pickerFormat = config.format ? config.format : dataSrcFormat;
+        };
         var searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
             .type('date')
             .addClass('dtcc-searchDateTime')
@@ -1795,6 +1799,9 @@ var searchDateTime = {
                     dt.draw();
                 }
                 return;
+            }
+            if (!pickerFormat || !dataSrcFormat) {
+                resolveFormats();
             }
             var mask = config.mask;
             var search = searchTerm === ''
@@ -1844,8 +1851,7 @@ var searchDateTime = {
         // Once data has been loaded we can run DateTime with the specified format
         dt.ready(function () {
             var DateTime = DataTable.use('datetime');
-            dataSrcFormat = getFormat(dt, _this.idx());
-            pickerFormat = config.format ? config.format : dataSrcFormat;
+            resolveFormats();
             if (DateTime) {
                 dateTime = new DateTime(searchInput.input(), {
                     format: pickerFormat,
