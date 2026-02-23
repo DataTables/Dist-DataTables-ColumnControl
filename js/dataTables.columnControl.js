@@ -1754,8 +1754,6 @@ var searchDateTime = {
     init: function (config) {
         var _this = this;
         var fromPicker = false;
-        var moment = DataTable.use('moment');
-        var luxon = DataTable.use('luxon');
         var dt = this.dt();
         var i18nBase = 'columnControl.search.datetime.';
         var pickerFormat = '';
@@ -1764,7 +1762,7 @@ var searchDateTime = {
         var searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
             .type('date')
             .addClass('dtcc-searchDateTime')
-            .sspTransform(function (val) { return toISO(val, pickerFormat, moment, luxon); })
+            .sspTransform(function (val) { return toISO(val, pickerFormat); })
             .sspData({ mask: config.mask })
             .clearable(config.clear)
             .placeholder(config.placeholder)
@@ -1801,7 +1799,7 @@ var searchDateTime = {
             var mask = config.mask;
             var search = searchTerm === ''
                 ? ''
-                : dateToNum(dateTime && fromPicker ? dateTime.val() : searchTerm.trim(), pickerFormat, moment, luxon, mask);
+                : dateToNum(dateTime && fromPicker ? dateTime.val() : searchTerm.trim(), pickerFormat, mask);
             if (searchType === 'empty') {
                 column.search.fixed('dtcc', function (haystack) { return !haystack; });
             }
@@ -1821,22 +1819,22 @@ var searchDateTime = {
                 // Note that the haystack in the search function is the rendered date - it
                 // might need to be converted back to a date
                 column.search.fixed('dtcc', function (haystack) {
-                    return dateToNum(haystack, dataSrcFormat, moment, luxon, mask) == search;
+                    return dateToNum(haystack, dataSrcFormat, mask) == search;
                 });
             }
             else if (searchType === 'notEqual') {
                 column.search.fixed('dtcc', function (haystack) {
-                    return dateToNum(haystack, dataSrcFormat, moment, luxon, mask) != search;
+                    return dateToNum(haystack, dataSrcFormat, mask) != search;
                 });
             }
             else if (searchType === 'greater') {
                 column.search.fixed('dtcc', function (haystack) {
-                    return dateToNum(haystack, dataSrcFormat, moment, luxon, mask) > search;
+                    return dateToNum(haystack, dataSrcFormat, mask) > search;
                 });
             }
             else if (searchType === 'less') {
                 column.search.fixed('dtcc', function (haystack) {
-                    return dateToNum(haystack, dataSrcFormat, moment, luxon, mask) < search;
+                    return dateToNum(haystack, dataSrcFormat, mask) < search;
                 });
             }
             if (!loadingState) {
@@ -1940,12 +1938,13 @@ function getFormat(dt, column) {
  *
  * @param input Input value
  * @param srcFormat String format of the input
- * @param moment Moment instance, if it is available
- * @param luxon Luxon object, if it is available
+ * @param mask Date mask
  * @returns Time stamp - milliseconds
  */
-function dateToNum(input, srcFormat, moment, luxon, mask) {
+function dateToNum(input, srcFormat, mask) {
     var d;
+    var moment = DataTable.use('moment');
+    var luxon = DataTable.use('luxon');
     if (input === '') {
         return '';
     }
@@ -1954,8 +1953,8 @@ function dateToNum(input, srcFormat, moment, luxon, mask) {
     }
     else if (srcFormat !== 'YYYY-MM-DD' && (moment || luxon)) {
         d = new Date(moment
-            ? moment(input, srcFormat).unix() * 1000
-            : luxon.DateTime.fromFormat(input, srcFormat).toMillis());
+            ? moment.utc(input, srcFormat).unix() * 1000
+            : luxon.DateTime.fromFormat(input, srcFormat, { zone: "utc" }).toMillis());
     }
     else {
         // new Date() with `/` separators will treat the input as local time, but with `-` it will
@@ -1993,11 +1992,11 @@ function dateToNum(input, srcFormat, moment, luxon, mask) {
  *
  * @param input Input value
  * @param srcFormat String format of the input
- * @param moment Moment instance, if it is available
- * @param luxon Luxon object, if it is available
  * @returns Value in ISO
  */
-function toISO(input, srcFormat, moment, luxon) {
+function toISO(input, srcFormat) {
+    var moment = DataTable.use('moment');
+    var luxon = DataTable.use('luxon');
     if (input === '') {
         return '';
     }
