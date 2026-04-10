@@ -780,9 +780,7 @@ var CheckList = /** @class */ (function () {
         var buttons = this._s.buttons;
         if (values !== undefined) {
             for (i = 0; i < buttons.length; i++) {
-                if (values.includes(buttons[i].value())) {
-                    buttons[i].active(true);
-                }
+                buttons[i].active(values.includes(buttons[i].value()));
             }
             this._updateCount();
             return this;
