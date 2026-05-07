@@ -1,22 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <metadata>
-        <version>1.2.1</version>
+        <version>2.0.0-beta.1</version>
         <id>datatables.net-columncontrol</id>
         <description>This is ColumnControl for DataTables</description>
-        <repository type="git" url="https://github.com/DataTables/Dist-DataTables-ColumnControl.git"/>
+        <repository type="git" url="https://github.com/DataTables/ColumnControl"/>
         <authors>SpryMedia Ltd</authors>
         <projectUrl>http://datatables.net</projectUrl>
         <license type="expression">MIT</license>
-        <tags>ColumnControl  search  filter  buttons  column visibility  Datatables jQuery table</tags>
+        <tags>ColumnControl  search  filter  buttons  column visibility  Datatables table</tags>
         <dependencies>
-            <dependency id="datatables.net" version="2.3.2"/>
+            <dependency id="datatables.net" version="3.0.0-0"/>
         </dependencies>
         <contentFiles>
             <files include="**/*" buildAction="Content"/>
         </contentFiles>
+        <readme>Readme.md</readme>
     </metadata>
     <files>
+        <file src="Readme.md" target=""/>
         <file src="js/dataTables.columnControl.js" target="content\Scripts"/>
         <file src="js/dataTables.columnControl.js" target="contentFiles\any\any\wwwroot\js"/>
         <file src="js/dataTables.columnControl.min.js" target="content\Scripts"/>
@@ -27,4 +29,3 @@
         <file src="js/dataTables.columnControl.mjs" target="contentFiles\any\any\wwwroot\js"/>
     </files>
 </package>
-
