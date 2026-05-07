@@ -1,4 +1,4 @@
-/*! ColumnControl 1.2.1
+/*! ColumnControl 2.0.0-beta.1 for DataTables
  * Copyright (c) SpryMedia Ltd - datatables.net/license
  *
  * SVG icons: ISC License
@@ -6,63 +6,55 @@
  * All other copyright (c) for Lucide are held by Lucide Contributors 2022.
  */
 
-(function( factory ){
-	if ( typeof define === 'function' && define.amd ) {
+(function(factory){
+	if (typeof define === 'function' && define.amd) {
 		// AMD
-		define( ['jquery', 'datatables.net'], function ( $ ) {
-			return factory( $, window, document );
-		} );
+		define(['datatables.net'], function (dt) {
+			return factory(window, document, dt);
+		});
 	}
-	else if ( typeof exports === 'object' ) {
+	else if (typeof exports === 'object') {
 		// CommonJS
-		var jq = require('jquery');
-		var cjsRequires = function (root, $) {
-			if ( ! $.fn.dataTable ) {
-				require('datatables.net')(root, $);
+		var cjsRequires = function (root) {
+			if (! root.DataTable) {
+				require('datatables.net')(root);
 			}
 		};
 
 		if (typeof window === 'undefined') {
-			module.exports = function (root, $) {
-				if ( ! root ) {
+			module.exports = function (root) {
+				if (! root) {
 					// CommonJS environments without a window global must pass a
 					// root. This will give an error otherwise
 					root = window;
 				}
 
-				if ( ! $ ) {
-					$ = jq( root );
-				}
-
-				cjsRequires( root, $ );
-				return factory( $, root, root.document );
+				cjsRequires(root);
+				return factory(root, root.document, root.DataTable);
 			};
 		}
 		else {
-			cjsRequires( window, jq );
-			module.exports = factory( jq, window, window.document );
+			cjsRequires(window);
+			module.exports = factory(window, window.document, window.DataTable);
 		}
 	}
 	else {
 		// Browser
-		factory( jQuery, window, document );
+		factory(window, document, window.DataTable);
 	}
-}(function( $, window, document ) {
+}(function(window, document, DataTable) {
 'use strict';
-var DataTable = $.fn.dataTable;
 
+var Dom = DataTable.Dom;
+var Api = DataTable.Api;
 
-
-function createElement(type, classes, text, children) {
-    if (classes === void 0) { classes = []; }
-    if (text === void 0) { text = null; }
-    if (children === void 0) { children = []; }
-    var el = document.createElement(type);
+function createElement(type, classes = [], text = null, children = []) {
+    let el = document.createElement(type);
     addClass(el, classes);
     if (text) {
         el.innerHTML = text;
     }
-    children.forEach(function (child) {
+    children.forEach((child) => {
         el.appendChild(child);
     });
     return el;
@@ -74,7 +66,7 @@ function addClass(el, classes) {
     if (!Array.isArray(classes)) {
         classes = [classes];
     }
-    classes.forEach(function (className) {
+    classes.forEach((className) => {
         if (el && className) {
             el.classList.add(className);
         }
@@ -86,9 +78,8 @@ function addClass(el, classes) {
  *
  * @param e Event or null to close all others
  */
-function close(e) {
-    if (e === void 0) { e = null; }
-    document.querySelectorAll('div.dtcc-dropdown').forEach(function (el) {
+function close(e = null) {
+    document.querySelectorAll('div.dtcc-dropdown').forEach((el) => {
         if (e === null || !el.contains(e.target)) {
             el._close();
             if (!e._closed) {
@@ -110,12 +101,12 @@ function getContainer(dt, btn) {
  * @param btn Button the dropdown emanates from
  */
 function positionDropdown(dropdown, dt, btn) {
-    var header = btn.closest('div.dt-column-header');
-    var container = getContainer(dt, btn);
-    var headerStyle = getComputedStyle(header);
-    var dropdownWidth = dropdown.offsetWidth;
-    var position = relativePosition(container, btn);
-    var left, top;
+    let header = btn.closest('div.dt-column-header');
+    let container = getContainer(dt, btn);
+    let headerStyle = getComputedStyle(header);
+    let dropdownWidth = dropdown.offsetWidth;
+    let position = relativePosition(container, btn);
+    let left, top;
     top = position.top + btn.offsetHeight;
     if (headerStyle.flexDirection === 'row-reverse') {
         // Icon is on the left of the header - align the left hand sides
@@ -126,7 +117,7 @@ function positionDropdown(dropdown, dt, btn) {
         left = position.left - dropdownWidth + btn.offsetWidth;
     }
     // Corrections - don't extend past the DataTable to the left and right
-    var containerWidth = container.offsetWidth;
+    let containerWidth = container.offsetWidth;
     if (left + dropdownWidth > containerWidth) {
         left -= left + dropdownWidth - containerWidth;
     }
@@ -142,17 +133,20 @@ function positionDropdown(dropdown, dt, btn) {
  * @param dropdown Dropdown element
  * @param dt Container DataTable
  * @param btn Button the dropdown emanates from
- * @returns Function to call when the dropdown should be removed from the document
+ * @param autoFocus Selector to run to find if we can focus on an item
+ *   automatically
+ * @returns Function to call when the dropdown should be removed from the
+ *   document
  */
-function attachDropdown(dropdown, dt, btn) {
-    var dtContainer = getContainer(dt, btn.element());
+function attachDropdown(dropdown, dt, btn, autoFocus) {
+    let dtContainer = getContainer(dt, btn.element());
     dropdown._shown = true;
     dtContainer.append(dropdown);
     positionDropdown(dropdown, dt, btn.element());
     btn.element().setAttribute('aria-expanded', 'true');
     // Note that this could be called when the dropdown has already been removed from the document
     // via another dropdown being shown. This will clean up the event on the next body click.
-    var removeDropdown = function (e) {
+    let removeDropdown = (e) => {
         // Not in document, so just clean up the event handler
         if (!dropdown._shown) {
             document.body.removeEventListener('click', removeDropdown);
@@ -164,7 +158,7 @@ function attachDropdown(dropdown, dt, btn) {
         }
         // If there is currently a datetime picker visible on the page, assume that it belongs to
         // this dropdown. Don't want to close while operating on the picker.
-        var datetime = document.querySelector('div.dt-datetime');
+        let datetime = document.querySelector('div.dt-datetime');
         if (datetime && (e.target === datetime || datetime.contains(e.target))) {
             return;
         }
@@ -172,6 +166,13 @@ function attachDropdown(dropdown, dt, btn) {
         document.body.removeEventListener('click', removeDropdown);
     };
     document.body.addEventListener('click', removeDropdown);
+    // Focus on an input if we can
+    if (autoFocus) {
+        let el = dropdown.querySelector(autoFocus);
+        if (el) {
+            el.focus();
+        }
+    }
     return removeDropdown;
 }
 /**
@@ -182,8 +183,8 @@ function attachDropdown(dropdown, dt, btn) {
  * @param origin Target element
  */
 function relativePosition(parent, origin) {
-    var top = 0;
-    var left = 0;
+    let top = 0;
+    let left = 0;
     while (origin && origin !== parent && origin !== document.body) {
         top += origin.offsetTop;
         left += origin.offsetLeft;
@@ -196,8 +197,8 @@ function relativePosition(parent, origin) {
         origin = origin.offsetParent;
     }
     return {
-        top: top,
-        left: left
+        top,
+        left
     };
 }
 /**
@@ -245,53 +246,59 @@ function focusCapture(dropdown, host) {
         }
     };
 }
-var dropdownContent = {
+const dropdownContent = {
     classes: {
         container: 'dtcc-dropdown',
         liner: 'dtcc-dropdown-liner'
     },
     defaults: {
+        autoFocus: 'div.dtcc-search input',
         className: 'dropdown',
+        dropdownClass: '',
         content: [],
         icon: 'menu',
+        iconActive: '',
         text: 'More...'
     },
-    init: function (config) {
-        var dt = this.dt();
-        var dropdown = createElement('div', dropdownContent.classes.container, '', [
+    init(config) {
+        let dt = this.dt();
+        let dropdown = createElement('div', dropdownContent.classes.container, '', [
             createElement('div', dropdownContent.classes.liner)
         ]);
         dropdown._shown = false;
-        dropdown._close = function () {
+        dropdown._close = () => {
             dropdown.remove();
             dropdown._shown = false;
             btn.element().setAttribute('aria-expanded', 'false');
         };
         dropdown.setAttribute('role', 'dialog');
         dropdown.setAttribute('aria-label', dt.i18n('columnControl.dropdown', config.text));
+        if (config.dropdownClass) {
+            addClass(dropdown, config.dropdownClass.split(' '));
+        }
         // When FixedHeader is used, the transition between states messes up positioning, so if
         // shown we just reattach the dropdown.
-        dt.on('fixedheader-mode', function () {
+        dt.on('fixedheader-mode', () => {
             if (dropdown._shown) {
-                attachDropdown(dropdown, dt, config._parents ? config._parents[0] : btn);
+                attachDropdown(dropdown, dt, config._parents ? config._parents[0] : btn, config.autoFocus);
             }
         });
         // A liner element allows more styling options, so the contents go inside this
-        var liner = dropdown.childNodes[0];
-        var btn = new Button(dt, this)
+        let liner = dropdown.childNodes[0];
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.dropdown', config.text))
-            .icon(config.icon)
+            .icon(config.icon, config.iconActive)
             .className(config.className)
             .dropdownDisplay(liner)
-            .handler(function (e) {
+            .handler((e) => {
             // Do nothing if our dropdown was just closed as part of the event (i.e. allow
             // the button to toggle it closed)
             if (e._closed && e._closed.includes(dropdown)) {
                 return;
             }
-            attachDropdown(dropdown, dt, config._parents ? config._parents[0] : btn);
+            attachDropdown(dropdown, dt, config._parents ? config._parents[0] : btn, config.autoFocus);
             // When activated using a key - auto focus on the first item in the popover
-            var focusable = dropdown.querySelector('input, a, button');
+            let focusable = dropdown.querySelector('input, a, button');
             if (focusable && e.type === 'keypress') {
                 focusable.focus();
             }
@@ -299,15 +306,15 @@ var dropdownContent = {
         btn.element().setAttribute('aria-haspopup', 'dialog');
         btn.element().setAttribute('aria-expanded', 'false');
         // Add the content for the dropdown
-        for (var i = 0; i < config.content.length; i++) {
-            var content = this.resolve(config.content[i]);
+        for (let i = 0; i < config.content.length; i++) {
+            let content = this.resolve(config.content[i]);
             // For nested items we need to keep a reference to the top level so the sub-levels
             // can communicate back - e.g. active or positioned relative to that top level.
             if (!content.config._parents) {
                 content.config._parents = [];
             }
             content.config._parents.push(btn);
-            var el = content.plugin.init.call(this, content.config);
+            let el = content.plugin.init.call(this, content.config);
             liner.appendChild(el);
         }
         // For nested dropdowns, add an extra icon element to show that it will dropdown further
@@ -315,13 +322,13 @@ var dropdownContent = {
             btn.extra('chevronRight');
         }
         // Reposition if needed
-        dt.on('columns-reordered', function () {
+        dt.on('columns-reordered', () => {
             positionDropdown(dropdown, dt, btn.element());
         });
         // Focus capture events
-        var capture = focusCapture(dropdown, btn.element());
+        let capture = focusCapture(dropdown, btn.element());
         document.body.addEventListener('keydown', capture);
-        dt.on('destroy', function () {
+        dt.on('destroy', () => {
             document.body.removeEventListener('keydown', capture);
         });
         return btn.element();
@@ -336,7 +343,7 @@ function wrap(paths) {
         paths +
         '</svg>');
 }
-var icons = {
+const icons = {
     chevronRight: wrap('<path d="m9 18 6-6-6-6"/>'),
     // columns-3
     columns: wrap('<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>'),
@@ -385,6 +392,8 @@ var icons = {
     orderNone: wrap('<path d="m3 8 4-4 4 4"/><path d="m11 16-4 4-4-4"/><path d="M7 4v16"/><path d="M15 8h6"/><path d="M15 16h6"/><path d="M13 12h8"/>'),
     // search
     search: wrap('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
+    //search-tick
+    searchActive: wrap('<path d="m8 11 2 2 4-4"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
     // search-x
     searchClear: wrap('<path d="m13.5 8.5-5 5"/><path d="m8.5 8.5 5 5"/><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
     // Custom
@@ -395,19 +404,175 @@ var icons = {
     x: wrap('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>')
 };
 
-var _namespace = 0;
-var Button = /** @class */ (function () {
+let _namespace = 0;
+class Button {
+    active(active) {
+        if (active === undefined) {
+            return this._s.active;
+        }
+        this._s.active = active;
+        this._checkActive();
+        return this;
+    }
+    /**
+     * A button can be marked as active by any of its sub-buttons (i.e. if it is a dropdown)
+     * and each one needs to be able to enable this button without effecting the active state
+     * trigged by any other sub-buttons. This method provides a way to do that.
+     *
+     * @param unique Unique id for the activate state
+     * @param active If it is active
+     * @returns Button instance
+     */
+    activeList(unique, active) {
+        this._s.activeList[unique] = active;
+        this._checkActive();
+        return this;
+    }
+    /**
+     * Scan over the dropdown element looking for any visible content. If there isn't any then
+     * we hide this button.
+     *
+     * @returns Button instance
+     */
+    checkDisplay() {
+        let visible = 0;
+        let children = this._dom.dropdownDisplay.childNodes;
+        for (let i = 0; i < children.length; i++) {
+            // No need to getComputedStyle since if a button is hidden, it was done with JS writing
+            // to style.display, so we can check against that.
+            if (children[i].style.display !== 'none') {
+                visible++;
+            }
+        }
+        if (visible === 0) {
+            this._dom.button.style.display = 'none';
+        }
+        return this;
+    }
+    /**
+     * Set the class name for the button
+     *
+     * @param className Class name
+     * @returns Button instance
+     */
+    className(className) {
+        this._dom.button.classList.add('dtcc-button_' + className);
+        return this;
+    }
+    /**
+     * Destroy the button, cleaning up event listeners
+     */
+    destroy() {
+        if (this._s.buttonClick) {
+            this._dom.button.removeEventListener('click', this._s.buttonClick);
+            this._dom.button.removeEventListener('keypress', this._s.buttonClick);
+        }
+        this._s.host.destroyRemove(this);
+    }
+    /**
+     * Relevant for drop downs only. When a button in a dropdown is hidden, we might want to
+     * hide the host button as well (if it has nothing else to show). For that we need to know
+     * what the dropdown element is.
+     *
+     * @param el Element that can be used for telling us about drop down elements.
+     * @returns Button instance
+     */
+    dropdownDisplay(el) {
+        this._dom.dropdownDisplay = el;
+        return this;
+    }
+    /**
+     * Get the DOM Button element to attach into the document
+     *
+     * @returns The Button element
+     */
+    element() {
+        return this._dom.button;
+    }
+    enable(enable) {
+        if (enable === undefined) {
+            return this._s.enabled;
+        }
+        this._dom.button.classList.toggle('dtcc-button_disabled', !enable);
+        this._s.enabled = enable;
+        return this;
+    }
+    /**
+     * Set the extra information icon
+     *
+     * @param icon Icon name
+     * @returns Button instance
+     */
+    extra(icon) {
+        this._dom.extra.innerHTML = icon ? icons[icon] : '';
+        return this;
+    }
+    /**
+     * Set the event handler for when the button is activated
+     *
+     * @param fn Event handler
+     * @returns Button instance
+     */
+    handler(fn) {
+        let buttonClick = (e) => {
+            // Close any dropdowns which are already open
+            close(e);
+            // Stop bubbling to the DataTables default header, which  might still be enabled
+            e.stopPropagation();
+            e.preventDefault();
+            if (this._s.enabled) {
+                fn(e);
+            }
+        };
+        this._s.buttonClick = buttonClick;
+        this._s.namespace = 'dtcc-' + _namespace++;
+        this._dom.button.addEventListener('click', buttonClick);
+        this._dom.button.addEventListener('keypress', buttonClick);
+        this._s.host.destroyAdd(this);
+        return this;
+    }
+    /**
+     * Set the icon to display in the button
+     *
+     * @param icon Icon name
+     * @param iconActive Icon to use when in active state
+     * @returns Button instance
+     */
+    icon(icon, iconActive) {
+        this._s.icon = icon;
+        this._s.iconActive = iconActive;
+        this._checkActive();
+        return this;
+    }
+    text(text) {
+        if (text === undefined) {
+            return this._s.label;
+        }
+        this._dom.text.innerHTML = text;
+        this._s.label = text; // for fast retrieval
+        this._dom.button.setAttribute('aria-label', text);
+        return this;
+    }
+    value(val) {
+        if (val === undefined) {
+            return this._s.value;
+        }
+        this._s.value = val;
+        return this;
+    }
     /**
      * Create a new button for use in ColumnControl contents. Buttons created by this class can be
      * used at the top level in the header or in a dropdown.
      */
-    function Button(dt, host) {
+    constructor(dt, host) {
         this._s = {
             active: false,
             activeList: [],
             buttonClick: null,
             dt: null,
             enabled: true,
+            icon: '',
+            iconActive: '',
             host: null,
             label: '',
             namespace: '',
@@ -431,190 +596,196 @@ var Button = /** @class */ (function () {
         // Default state is enabled
         this.enable(true);
     }
-    Button.prototype.active = function (active) {
-        if (active === undefined) {
-            return this._s.active;
-        }
-        this._s.active = active;
-        this._checkActive();
-        return this;
-    };
-    /**
-     * A button can be marked as active by any of its sub-buttons (i.e. if it is a dropdown)
-     * and each one needs to be able to enable this button without effecting the active state
-     * trigged by any other sub-buttons. This method provides a way to do that.
-     *
-     * @param unique Unique id for the activate state
-     * @param active If it is active
-     * @returns Button instance
-     */
-    Button.prototype.activeList = function (unique, active) {
-        this._s.activeList[unique] = active;
-        this._checkActive();
-        return this;
-    };
-    /**
-     * Scan over the dropdown element looking for any visible content. If there isn't any then
-     * we hide this button.
-     *
-     * @returns Button instance
-     */
-    Button.prototype.checkDisplay = function () {
-        var visible = 0;
-        var children = this._dom.dropdownDisplay.childNodes;
-        for (var i = 0; i < children.length; i++) {
-            // No need to getComputedStyle since if a button is hidden, it was done with JS writing
-            // to style.display, so we can check against that.
-            if (children[i].style.display !== 'none') {
-                visible++;
-            }
-        }
-        if (visible === 0) {
-            this._dom.button.style.display = 'none';
-        }
-        return this;
-    };
-    /**
-     * Set the class name for the button
-     *
-     * @param className Class name
-     * @returns Button instance
-     */
-    Button.prototype.className = function (className) {
-        this._dom.button.classList.add('dtcc-button_' + className);
-        return this;
-    };
-    /**
-     * Destroy the button, cleaning up event listeners
-     */
-    Button.prototype.destroy = function () {
-        if (this._s.buttonClick) {
-            this._dom.button.removeEventListener('click', this._s.buttonClick);
-            this._dom.button.removeEventListener('keypress', this._s.buttonClick);
-        }
-        this._s.host.destroyRemove(this);
-    };
-    /**
-     * Relevant for drop downs only. When a button in a dropdown is hidden, we might want to
-     * hide the host button as well (if it has nothing else to show). For that we need to know
-     * what the dropdown element is.
-     *
-     * @param el Element that can be used for telling us about drop down elements.
-     * @returns Button instance
-     */
-    Button.prototype.dropdownDisplay = function (el) {
-        this._dom.dropdownDisplay = el;
-        return this;
-    };
-    /**
-     * Get the DOM Button element to attach into the document
-     *
-     * @returns The Button element
-     */
-    Button.prototype.element = function () {
-        return this._dom.button;
-    };
-    Button.prototype.enable = function (enable) {
-        if (enable === undefined) {
-            return this._s.enabled;
-        }
-        this._dom.button.classList.toggle('dtcc-button_disabled', !enable);
-        this._s.enabled = enable;
-        return this;
-    };
-    /**
-     * Set the extra information icon
-     *
-     * @param icon Icon name
-     * @returns Button instance
-     */
-    Button.prototype.extra = function (icon) {
-        this._dom.extra.innerHTML = icon ? icons[icon] : '';
-        return this;
-    };
-    /**
-     * Set the event handler for when the button is activated
-     *
-     * @param fn Event handler
-     * @returns Button instance
-     */
-    Button.prototype.handler = function (fn) {
-        var _this = this;
-        var buttonClick = function (e) {
-            // Close any dropdowns which are already open
-            close(e);
-            // Stop bubbling to the DataTables default header, which  might still be enabled
-            e.stopPropagation();
-            e.preventDefault();
-            if (_this._s.enabled) {
-                fn(e);
-            }
-        };
-        this._s.buttonClick = buttonClick;
-        this._s.namespace = 'dtcc-' + _namespace++;
-        this._dom.button.addEventListener('click', buttonClick);
-        this._dom.button.addEventListener('keypress', buttonClick);
-        this._s.host.destroyAdd(this);
-        return this;
-    };
-    /**
-     * Set the icon to display in the button
-     *
-     * @param icon Icon name
-     * @returns Button instance
-     */
-    Button.prototype.icon = function (icon) {
-        this._dom.icon.innerHTML = icon ? icons[icon] : '';
-        return this;
-    };
-    Button.prototype.text = function (text) {
-        if (text === undefined) {
-            return this._s.label;
-        }
-        this._dom.text.innerHTML = text;
-        this._s.label = text; // for fast retrieval
-        this._dom.button.setAttribute('aria-label', text);
-        return this;
-    };
-    Button.prototype.value = function (val) {
-        if (val === undefined) {
-            return this._s.value;
-        }
-        this._s.value = val;
-        return this;
-    };
     /**
      * Check if anything is making this button active
      *
      * @returns Self for chaining
      */
-    Button.prototype._checkActive = function () {
+    _checkActive() {
+        let icon = this._s.icon;
         if (this._s.active === true || Object.values(this._s.activeList).includes(true)) {
             this._dom.state.innerHTML = icons.tick;
             this._dom.button.classList.add('dtcc-button_active');
+            if (this._s.iconActive) {
+                icon = this._s.iconActive;
+            }
         }
         else {
             this._dom.state.innerHTML = '';
             this._dom.button.classList.remove('dtcc-button_active');
         }
+        if (icon) {
+            this._dom.icon.innerHTML = icons[icon];
+        }
         return this;
-    };
-    Button.classes = {
-        container: 'dtcc-button'
-    };
-    return Button;
-}());
+    }
+}
+Button.classes = {
+    container: 'dtcc-button'
+};
 
-var CheckList = /** @class */ (function () {
+class CheckList {
+    /**
+     * Add one or more buttons to the list
+     *
+     * @param options Configuration for the button(s) to add
+     * @returns Self for chaining
+     */
+    add(options, update) {
+        if (!Array.isArray(options)) {
+            options = [options];
+        }
+        for (let i = 0; i < options.length; i++) {
+            let option = options[i];
+            let btn = new Button(this._s.dt, this._s.host)
+                .active(option.active || false)
+                .handler((e) => {
+                this._s.handler(e, btn, this._s.buttons, true);
+                this._updateCount();
+            })
+                .icon(option.icon || '')
+                .text(option.label !== ''
+                ? option.label
+                : this._s.dt.i18n('columnControl.list.empty', 'Empty'))
+                .value(option.value);
+            if (option.label === '') {
+                btn.className('empty');
+            }
+            this._s.buttons.push(btn);
+        }
+        let count = this._s.buttons.length;
+        if (update === true || update === undefined) {
+            this._dom.selectAllCount.innerHTML = count ? '(' + count + ')' : '';
+            this._redraw();
+        }
+        return this;
+    }
+    /**
+     * Find a button with a given value
+     *
+     * @param val Value to search for
+     * @returns Found button
+     */
+    button(val) {
+        let buttons = this._s.buttons;
+        for (let i = 0; i < buttons.length; i++) {
+            if (buttons[i].value() === val) {
+                return buttons[i];
+            }
+        }
+        return null;
+    }
+    /**
+     * Remove all buttons from the list
+     *
+     * @returns Self for chaining
+     */
+    clear() {
+        // Clean up the buttons
+        for (let i = 0; i < this._s.buttons.length; i++) {
+            this._s.buttons[i].destroy();
+        }
+        // Then empty them out
+        this._dom.buttons.replaceChildren();
+        this._s.buttons.length = 0;
+        return this;
+    }
+    /**
+     * Get the DOM container element to attach into the document
+     *
+     * @returns Container
+     */
+    element() {
+        return this._dom.container;
+    }
+    /**
+     * Set the event handler for what happens when a button is clicked
+     *
+     * @param fn Event handler
+     */
+    handler(fn) {
+        this._s.handler = fn;
+        return this;
+    }
+    /**
+     * Indicate that this is a search control and should listen for corresponding events
+     *
+     * @param dt DataTable instance
+     * @param idx Column index
+     */
+    searchListener(dt) {
+        // Column control search clearing (column().columnControl.searchClear() method)
+        dt.on('cc-search-clear', (e, colIdx) => {
+            if (colIdx === this._s.host.idx()) {
+                this.selectNone();
+                this._s.handler(e, null, this._s.buttons, false);
+                this._s.search = '';
+                this._dom.search.value = '';
+                this._redraw();
+                this._updateCount();
+            }
+        });
+        return this;
+    }
+    /**
+     * Select all buttons
+     *
+     * @returns Self for chaining
+     */
+    selectAll() {
+        for (let i = 0; i < this._s.displayed.length; i++) {
+            this._s.displayed[i].active(true);
+        }
+        return this;
+    }
+    /**
+     * Deselect all buttons
+     *
+     * @returns Self for chaining
+     */
+    selectNone() {
+        for (let i = 0; i < this._s.buttons.length; i++) {
+            this._s.buttons[i].active(false);
+        }
+        return this;
+    }
+    /**
+     * Set the list's title
+     *
+     * @param title Display title
+     * @returns Button instance
+     */
+    title(title) {
+        this._dom.title.innerHTML = title;
+        return this;
+    }
+    values(values) {
+        let i;
+        let result = [];
+        let buttons = this._s.buttons;
+        if (values !== undefined) {
+            for (i = 0; i < buttons.length; i++) {
+                buttons[i].active(values.includes(buttons[i].value()));
+            }
+            this._updateCount();
+            return this;
+        }
+        for (i = 0; i < buttons.length; i++) {
+            if (buttons[i].active()) {
+                result.push(buttons[i].value());
+            }
+        }
+        return result;
+    }
     /**
      * Container for a list of buttons
      */
-    function CheckList(dt, host, opts) {
-        var _this = this;
+    constructor(dt, host, opts) {
         this._s = {
             buttons: [],
+            displayed: [],
             dt: null,
-            handler: function () { },
+            handler: () => { },
             host: null,
             search: ''
         };
@@ -626,13 +797,13 @@ var CheckList = /** @class */ (function () {
             controls: createElement('div', 'dtcc-list-controls'),
             empty: createElement('div', 'dtcc-list-empty', dt.i18n('columnControl.list.empty', 'No options')),
             title: createElement('div', 'dtcc-list-title'),
-            selectAll: createElement('button', 'dtcc-list-selectAll', dt.i18n('columnControl.list.all', 'Select all')),
+            selectAll: createElement('button', 'dtcc-list-selectAll', dt.i18n('columnControl.list.all', 'Select')),
             selectAllCount: createElement('span'),
             selectNone: createElement('button', 'dtcc-list-selectNone', dt.i18n('columnControl.list.none', 'Deselect')),
             selectNoneCount: createElement('span'),
             search: createElement('input', CheckList.classes.input)
         };
-        var dom = this._dom;
+        let dom = this._dom;
         dom.search.setAttribute('type', 'text');
         dom.container.append(dom.title);
         dom.container.append(dom.controls);
@@ -647,19 +818,19 @@ var CheckList = /** @class */ (function () {
             dom.selectNone.setAttribute('type', 'button');
         }
         // Events
-        var searchInput = function () {
-            _this._s.search = dom.search.value;
-            _this._redraw();
+        let searchInput = () => {
+            this._s.search = dom.search.value;
+            this._redraw();
         };
-        var selectAllClick = function (e) {
-            _this.selectAll();
-            _this._s.handler(e, null, _this._s.buttons, true);
-            _this._updateCount();
+        let selectAllClick = (e) => {
+            this.selectAll();
+            this._s.handler(e, null, this._s.buttons, true);
+            this._updateCount();
         };
-        var selectNoneClick = function (e) {
-            _this.selectNone();
-            _this._s.handler(e, null, _this._s.buttons, true);
-            _this._updateCount();
+        let selectNoneClick = (e) => {
+            this.selectNone();
+            this._s.handler(e, null, this._s.buttons, true);
+            this._updateCount();
         };
         if (opts.search) {
             dom.controls.append(dom.search);
@@ -668,204 +839,50 @@ var CheckList = /** @class */ (function () {
         }
         dom.selectAll.addEventListener('click', selectAllClick);
         dom.selectNone.addEventListener('click', selectNoneClick);
-        dt.on('destroy', function () {
+        dt.on('destroy', () => {
             dom.selectAll.removeEventListener('click', selectAllClick);
             dom.selectNone.removeEventListener('click', selectNoneClick);
             dom.search.removeEventListener('input', searchInput);
         });
     }
     /**
-     * Add one or more buttons to the list
-     *
-     * @param options Configuration for the button(s) to add
-     * @returns Self for chaining
-     */
-    CheckList.prototype.add = function (options, update) {
-        var _this = this;
-        if (!Array.isArray(options)) {
-            options = [options];
-        }
-        var _loop_1 = function (i) {
-            var option = options[i];
-            var btn = new Button(this_1._s.dt, this_1._s.host)
-                .active(option.active || false)
-                .handler(function (e) {
-                _this._s.handler(e, btn, _this._s.buttons, true);
-                _this._updateCount();
-            })
-                .icon(option.icon || '')
-                .text(option.label !== ''
-                ? option.label
-                : this_1._s.dt.i18n('columnControl.list.empty', 'Empty'))
-                .value(option.value);
-            if (option.label === '') {
-                btn.className('empty');
-            }
-            this_1._s.buttons.push(btn);
-        };
-        var this_1 = this;
-        for (var i = 0; i < options.length; i++) {
-            _loop_1(i);
-        }
-        var count = this._s.buttons.length;
-        if (update === true || update === undefined) {
-            this._dom.selectAllCount.innerHTML = count ? '(' + count + ')' : '';
-            this._redraw();
-        }
-        return this;
-    };
-    /**
-     * Find a button with a given value
-     *
-     * @param val Value to search for
-     * @returns Found button
-     */
-    CheckList.prototype.button = function (val) {
-        var buttons = this._s.buttons;
-        for (var i = 0; i < buttons.length; i++) {
-            if (buttons[i].value() === val) {
-                return buttons[i];
-            }
-        }
-        return null;
-    };
-    /**
-     * Remove all buttons from the list
-     *
-     * @returns Self for chaining
-     */
-    CheckList.prototype.clear = function () {
-        // Clean up the buttons
-        for (var i = 0; i < this._s.buttons.length; i++) {
-            this._s.buttons[i].destroy();
-        }
-        // Then empty them out
-        this._dom.buttons.replaceChildren();
-        this._s.buttons.length = 0;
-        return this;
-    };
-    /**
-     * Get the DOM container element to attach into the document
-     *
-     * @returns Container
-     */
-    CheckList.prototype.element = function () {
-        return this._dom.container;
-    };
-    /**
-     * Set the event handler for what happens when a button is clicked
-     *
-     * @param fn Event handler
-     */
-    CheckList.prototype.handler = function (fn) {
-        this._s.handler = fn;
-        return this;
-    };
-    /**
-     * Indicate that this is a search control and should listen for corresponding events
-     *
-     * @param dt DataTable instance
-     * @param idx Column index
-     */
-    CheckList.prototype.searchListener = function (dt) {
-        var _this = this;
-        // Column control search clearing (column().columnControl.searchClear() method)
-        dt.on('cc-search-clear', function (e, colIdx) {
-            if (colIdx === _this._s.host.idx()) {
-                _this.selectNone();
-                _this._s.handler(e, null, _this._s.buttons, false);
-                _this._s.search = '';
-                _this._dom.search.value = '';
-                _this._redraw();
-                _this._updateCount();
-            }
-        });
-        return this;
-    };
-    /**
-     * Select all buttons
-     *
-     * @returns Self for chaining
-     */
-    CheckList.prototype.selectAll = function () {
-        for (var i = 0; i < this._s.buttons.length; i++) {
-            this._s.buttons[i].active(true);
-        }
-        return this;
-    };
-    /**
-     * Deselect all buttons
-     *
-     * @returns Self for chaining
-     */
-    CheckList.prototype.selectNone = function () {
-        for (var i = 0; i < this._s.buttons.length; i++) {
-            this._s.buttons[i].active(false);
-        }
-        return this;
-    };
-    /**
-     * Set the list's title
-     *
-     * @param title Display title
-     * @returns Button instance
-     */
-    CheckList.prototype.title = function (title) {
-        this._dom.title.innerHTML = title;
-        return this;
-    };
-    CheckList.prototype.values = function (values) {
-        var i;
-        var result = [];
-        var buttons = this._s.buttons;
-        if (values !== undefined) {
-            for (i = 0; i < buttons.length; i++) {
-                buttons[i].active(values.includes(buttons[i].value()));
-            }
-            this._updateCount();
-            return this;
-        }
-        for (i = 0; i < buttons.length; i++) {
-            if (buttons[i].active()) {
-                result.push(buttons[i].value());
-            }
-        }
-        return result;
-    };
-    /**
      * Update the deselect counter
      */
-    CheckList.prototype._updateCount = function () {
-        var count = this.values().length;
+    _updateCount() {
+        let count = this.values().length;
         this._dom.selectNoneCount.innerHTML = count ? '(' + count + ')' : '';
-    };
+    }
     /**
      * Add the buttons to the page - taking into account filtering
      */
-    CheckList.prototype._redraw = function () {
-        var buttons = this._s.buttons;
-        var el = this._dom.buttons;
-        var searchTerm = this._s.search.toLowerCase();
+    _redraw() {
+        let buttons = this._s.buttons;
+        let el = this._dom.buttons;
+        let searchTerm = this._s.search.toLowerCase();
         el.replaceChildren();
-        for (var i = 0; i < buttons.length; i++) {
-            var btn = buttons[i];
+        this._s.displayed.length = 0;
+        for (let i = 0; i < buttons.length; i++) {
+            let btn = buttons[i];
             if (!searchTerm ||
                 btn
                     .text()
                     .toLowerCase()
                     .includes(searchTerm)) {
                 el.appendChild(btn.element());
+                this._s.displayed.push(btn);
             }
         }
         this._dom.empty.style.display = buttons.length === 0 ? 'block' : 'none';
         el.style.display = buttons.length > 0 ? 'block' : 'none';
-    };
-    CheckList.classes = {
-        container: 'dtcc-list',
-        input: 'dtcc-list-search'
-    };
-    return CheckList;
-}());
+        this._dom.selectAllCount.innerHTML = searchTerm
+            ? '(' + this._s.displayed.length + ' / ' + buttons.length + ')'
+            : '(' + buttons.length + ')';
+    }
+}
+CheckList.classes = {
+    container: 'dtcc-list',
+    input: 'dtcc-list-search'
+};
 
 var colVis = {
     defaults: {
@@ -875,25 +892,25 @@ var colVis = {
         select: false,
         title: 'Column visibility'
     },
-    init: function (config) {
-        var dt = this.dt();
-        var checkList = new CheckList(dt, this, {
+    init(config) {
+        let dt = this.dt();
+        let checkList = new CheckList(dt, this, {
             search: config.search,
             select: config.select
         })
             .title(dt.i18n('columnControl.colVis', config.title))
-            .handler(function (e, btn, buttons) {
+            .handler((e, btn, buttons) => {
             if (btn) {
                 btn.active(!btn.active());
             }
             apply(buttons);
         });
         // Need to apply in a loop to allow for select all / select none
-        var apply = function (buttons) {
-            for (var i = 0; i < buttons.length; i++) {
-                var btn = buttons[i];
-                var idx = btn.value();
-                var col = dt.column(idx);
+        let apply = (buttons) => {
+            for (let i = 0; i < buttons.length; i++) {
+                let btn = buttons[i];
+                let idx = btn.value();
+                let col = dt.column(idx);
                 if (btn.active() && !col.visible()) {
                     col.visible(true);
                 }
@@ -902,8 +919,8 @@ var colVis = {
                 }
             }
         };
-        var rebuild = function () {
-            var columns = dt.columns(config.columns);
+        let rebuild = () => {
+            let columns = dt.columns(config.columns);
             columns.every(function () {
                 checkList.add({
                     active: this.visible(),
@@ -913,13 +930,13 @@ var colVis = {
             });
         };
         rebuild();
-        dt.on('column-visibility', function (e, s, colIdx, state) {
-            var btn = checkList.button(colIdx);
+        dt.on('column-visibility', (e, s, colIdx, state) => {
+            let btn = checkList.button(colIdx);
             if (btn) {
                 btn.active(state);
             }
         });
-        dt.on('columns-reordered', function (e, details) {
+        dt.on('columns-reordered', (e, details) => {
             checkList.clear();
             rebuild();
         });
@@ -936,8 +953,8 @@ var colVisDropdown = {
         text: 'Column visibility',
         title: 'Column visibility'
     },
-    extend: function (config) {
-        var dt = this.dt();
+    extend(config) {
+        let dt = this.dt();
         return {
             extend: 'dropdown',
             icon: 'columns',
@@ -957,10 +974,9 @@ var reorder = {
         icon: 'move',
         text: 'Reorder columns'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.reorder', config.text))
             .icon(config.icon)
             .className(config.className);
@@ -969,8 +985,8 @@ var reorder = {
         if (this.idx() === 0) {
             btn.enable(false);
         }
-        dt.on('columns-reordered', function (e, details) {
-            btn.enable(_this.idx() > 0);
+        dt.on('columns-reordered', (e, details) => {
+            btn.enable(this.idx() > 0);
         });
         // If ColReorder wasn't initialised on this DataTable, then we need to add it
         if (!dt.init().colReorder) {
@@ -986,15 +1002,14 @@ var reorderLeft = {
         icon: 'moveLeft',
         text: 'Move column left'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.reorderLeft', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
-            var idx = _this.idx();
+            .handler(() => {
+            let idx = this.idx();
             // TODO account for visibility
             if (idx > 0) {
                 dt.colReorder.move(idx, idx - 1);
@@ -1003,8 +1018,8 @@ var reorderLeft = {
         if (this.idx() === 0) {
             btn.enable(false);
         }
-        dt.on('columns-reordered', function (e, details) {
-            btn.enable(_this.idx() > 0);
+        dt.on('columns-reordered', (e, details) => {
+            btn.enable(this.idx() > 0);
         });
         return btn.element();
     }
@@ -1016,15 +1031,14 @@ var reorderRight = {
         icon: 'moveRight',
         text: 'Move column right'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.reorderRight', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
-            var idx = _this.idx();
+            .handler(() => {
+            let idx = this.idx();
             if (idx < dt.columns().count() - 1) {
                 dt.colReorder.move(idx, idx + 1);
             }
@@ -1032,8 +1046,8 @@ var reorderRight = {
         if (this.idx() === dt.columns().count() - 1) {
             btn.enable(false);
         }
-        dt.on('columns-reordered', function (e, details) {
-            btn.enable(_this.idx() < dt.columns().count() - 1);
+        dt.on('columns-reordered', (e, details) => {
+            btn.enable(this.idx() < dt.columns().count() - 1);
         });
         return btn.element();
     }
@@ -1048,18 +1062,17 @@ var order = {
         statusOnly: false,
         text: 'Toggle ordering'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.order', config.text))
             .icon('orderAsc')
             .className(config.className);
         if (!config.statusOnly) {
-            dt.order.listener(btn.element(), DataTable.versionCheck('2.3.2') ? function () { return [_this.idx()]; } : this.idx(), function () { });
+            dt.order.listener(btn.element(), () => [this.idx()], () => { });
         }
-        dt.on('order', function (e, s, order) {
-            var found = order.find(function (o) { return o.col === _this.idx(); });
+        dt.on('order', (e, s, order) => {
+            let found = order.find((o) => o.col === this.idx());
             if (!found) {
                 btn.active(false).icon(config.iconNone);
             }
@@ -1080,20 +1093,19 @@ var orderAddAsc = {
         icon: 'orderAddAsc',
         text: 'Add Sort Ascending'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderAddAsc', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
-            var order = dt.order();
-            order.push([_this.idx(), 'asc']);
+            .handler(() => {
+            let order = dt.order();
+            order.push([this.idx(), 'asc']);
             dt.draw();
         });
-        dt.on('order', function (e, s, order) {
-            var found = order.some(function (o) { return o.col === _this.idx(); });
+        dt.on('order', (e, s, order) => {
+            let found = order.some((o) => o.col === this.idx());
             btn.enable(!found);
         });
         return btn.element();
@@ -1106,20 +1118,19 @@ var orderAddDesc = {
         icon: 'orderAddDesc',
         text: 'Add Sort Descending'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderAddDesc', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
-            var order = dt.order();
-            order.push([_this.idx(), 'desc']);
+            .handler(() => {
+            let order = dt.order();
+            order.push([this.idx(), 'desc']);
             dt.draw();
         });
-        dt.on('order', function (e, s, order) {
-            var found = order.some(function (o) { return o.col === _this.idx(); });
+        dt.on('order', (e, s, order) => {
+            let found = order.some((o) => o.col === this.idx());
             btn.enable(!found);
         });
         return btn.element();
@@ -1132,25 +1143,24 @@ var orderAsc = {
         icon: 'orderAsc',
         text: 'Sort Ascending'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderAsc', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
-            _this.dt()
+            .handler(() => {
+            this.dt()
                 .order([
                 {
-                    idx: _this.idx(),
+                    idx: this.idx(),
                     dir: 'asc'
                 }
             ])
                 .draw();
         });
-        dt.on('order', function (e, s, order) {
-            var found = order.some(function (o) { return o.col === _this.idx() && o.dir === 'asc'; });
+        dt.on('order', (e, s, order) => {
+            let found = order.some((o) => o.col === this.idx() && o.dir === 'asc');
             btn.active(found);
         });
         return btn.element();
@@ -1163,16 +1173,16 @@ var orderClear = {
         icon: 'orderClear',
         text: 'Clear sort'
     },
-    init: function (config) {
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderClear', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
+            .handler(() => {
             dt.order([]).draw();
         });
-        dt.on('order', function (e, s, order) {
+        dt.on('order', (e, s, order) => {
             btn.enable(order.length > 0);
         });
         if (dt.order().length === 0) {
@@ -1188,25 +1198,24 @@ var orderDesc = {
         icon: 'orderDesc',
         text: 'Sort Descending'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderDesc', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
-            _this.dt()
+            .handler(() => {
+            this.dt()
                 .order([
                 {
-                    idx: _this.idx(),
+                    idx: this.idx(),
                     dir: 'desc'
                 }
             ])
                 .draw();
         });
-        dt.on('order', function (e, s, order) {
-            var found = order.some(function (o) { return o.col === _this.idx() && o.dir === 'desc'; });
+        dt.on('order', (e, s, order) => {
+            let found = order.some((o) => o.col === this.idx() && o.dir === 'desc');
             btn.active(found);
         });
         return btn.element();
@@ -1219,22 +1228,21 @@ var orderRemove = {
         icon: 'orderRemove',
         text: 'Remove from sort'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.orderRemove', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
+            .handler(() => {
             // Remove the current column from the ordering array, then reorder the table
-            var order = dt.order();
-            var idx = order.findIndex(function (o) { return o[0] === _this.idx(); });
+            let order = dt.order();
+            let idx = order.findIndex((o) => o[0] === this.idx());
             order.splice(idx, 1);
             dt.order(order).draw();
         });
-        dt.on('order', function (e, s, order) {
-            var found = order.some(function (o) { return o.col === _this.idx(); });
+        dt.on('order', (e, s, order) => {
+            let found = order.some((o) => o.col === this.idx());
             btn.enable(found);
         });
         btn.enable(false);
@@ -1251,7 +1259,7 @@ var orderStatus = {
         statusOnly: true,
         text: 'Sort status'
     },
-    extend: function (config) {
+    extend(config) {
         return Object.assign(config, { extend: 'order' });
     }
 };
@@ -1264,8 +1272,8 @@ var orderStatus = {
  * @returns Grouping array
  */
 function rowGroupAdd$1(dt, dataSrc) {
-    var applied = rowGroupApplied(dt);
-    var idx = applied.indexOf(dataSrc);
+    let applied = rowGroupApplied(dt);
+    let idx = applied.indexOf(dataSrc);
     if (idx === -1) {
         applied.push(dataSrc);
         dt.rowGroup().dataSrc(applied);
@@ -1279,7 +1287,7 @@ function rowGroupAdd$1(dt, dataSrc) {
  * @returns
  */
 function rowGroupApplied(dt) {
-    var applied = dt.rowGroup().dataSrc();
+    let applied = dt.rowGroup().dataSrc();
     return Array.isArray(applied)
         ? applied
         : [applied];
@@ -1300,8 +1308,8 @@ function rowGroupClear$1(dt) {
  * @returns Grouping array
  */
 function rowGroupRemove$1(dt, dataSrc) {
-    var applied = rowGroupApplied(dt);
-    var idx = applied.indexOf(dataSrc);
+    let applied = rowGroupApplied(dt);
+    let idx = applied.indexOf(dataSrc);
     if (idx !== -1) {
         applied.splice(idx, 1);
         dt.rowGroup().dataSrc(applied);
@@ -1315,15 +1323,14 @@ var rowGroup = {
         order: true,
         text: 'Group rows'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.rowGroup', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
-            var dataSrc = dt.column(_this.idx()).dataSrc();
+            .handler(() => {
+            let dataSrc = dt.column(this.idx()).dataSrc();
             if (btn.active()) {
                 // Grouping is active - remove
                 rowGroupRemove$1(dt, dataSrc);
@@ -1333,15 +1340,15 @@ var rowGroup = {
                 rowGroupClear$1(dt);
                 rowGroupAdd$1(dt, dataSrc);
                 if (config.order !== false) {
-                    dt.order([_this.idx(), 'asc']);
+                    dt.order([this.idx(), 'asc']);
                 }
             }
             dt.draw();
         });
         // Show as active when grouping is applied
-        dt.on('rowgroup-datasrc', function () {
-            var applied = rowGroupApplied(dt);
-            var ours = dt.column(_this.idx()).dataSrc();
+        dt.on('rowgroup-datasrc', () => {
+            let applied = rowGroupApplied(dt);
+            let ours = dt.column(this.idx()).dataSrc();
             btn.active(applied.includes(ours));
         });
         return btn.element();
@@ -1355,15 +1362,14 @@ var rowGroupAdd = {
         order: true,
         text: 'Add to grouping'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.rowGroup', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
-            var dataSrc = dt.column(_this.idx()).dataSrc();
+            .handler(() => {
+            let dataSrc = dt.column(this.idx()).dataSrc();
             if (btn.enable()) {
                 // No grouping by this column yet, add it
                 rowGroupAdd$1(dt, dataSrc);
@@ -1371,9 +1377,9 @@ var rowGroupAdd = {
             dt.draw();
         });
         // Show as active when grouping is applied
-        dt.on('rowgroup-datasrc', function () {
-            var applied = rowGroupApplied(dt);
-            var ours = dt.column(_this.idx()).dataSrc();
+        dt.on('rowgroup-datasrc', () => {
+            let applied = rowGroupApplied(dt);
+            let ours = dt.column(this.idx()).dataSrc();
             btn.enable(!applied.includes(ours));
         });
         return btn.element();
@@ -1386,18 +1392,18 @@ var rowGroupClear = {
         icon: 'groupClear',
         text: 'Clear all grouping'
     },
-    init: function (config) {
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.rowGroup', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
+            .handler(() => {
             rowGroupClear$1(dt);
             dt.draw();
         });
         // Show as active when any grouping is applied
-        dt.on('rowgroup-datasrc', function () {
+        dt.on('rowgroup-datasrc', () => {
             btn.enable(rowGroupApplied(dt).length > 0);
         });
         // Default status
@@ -1413,15 +1419,14 @@ var rowGroupRemove = {
         order: true,
         text: 'Remove from grouping'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.rowGroup', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
-            var dataSrc = dt.column(_this.idx()).dataSrc();
+            .handler(() => {
+            let dataSrc = dt.column(this.idx()).dataSrc();
             if (btn.enable()) {
                 // Grouping is active - remove
                 rowGroupRemove$1(dt, dataSrc);
@@ -1429,9 +1434,9 @@ var rowGroupRemove = {
             }
         });
         // Show as active when grouping is applied
-        dt.on('rowgroup-datasrc', function () {
-            var applied = rowGroupApplied(dt);
-            var ours = dt.column(_this.idx()).dataSrc();
+        dt.on('rowgroup-datasrc', () => {
+            let applied = rowGroupApplied(dt);
+            let ours = dt.column(this.idx()).dataSrc();
             btn.enable(applied.includes(ours));
         });
         // Default disabled
@@ -1440,12 +1445,182 @@ var rowGroupRemove = {
     }
 };
 
-var SearchInput = /** @class */ (function () {
+class SearchInput {
+    /**
+     * Add a class to the container
+     *
+     * @param name Class name to add
+     * @returns Self for chaining
+     */
+    addClass(name) {
+        this._dom.container.classList.add(name);
+        return this;
+    }
+    /**
+     * Clear any applied search
+     *
+     * @returns Self for chaining
+     */
+    clear() {
+        this.set(this._dom.select.children[0].getAttribute('value'), '');
+        return this;
+    }
+    /**
+     * Set the clear icon feature can be used or not
+     *
+     * @param set Flag
+     * @returns Self for chaining
+     */
+    clearable(set) {
+        // Note there is no add here as it is added by default and never used after setup, so
+        // no need.
+        if (!set) {
+            this._dom.clear.remove();
+        }
+        return this;
+    }
+    /**
+     * Get the container element
+     *
+     * @returns The container element
+     */
+    element() {
+        return this._dom.container;
+    }
+    /**
+     * Get the HTML input element for this control
+     *
+     * @returns HTML Input element
+     */
+    input() {
+        return this._dom.input;
+    }
+    /**
+     * Set the list of options for the dropdown
+     *
+     * @param opts List of options
+     * @returns Self for chaining
+     */
+    options(opts) {
+        let select = this._dom.select;
+        for (let i = 0; i < opts.length; i++) {
+            select.add(new Option(opts[i].label, opts[i].value));
+        }
+        // Initial icon
+        this._dom.typeIcon.innerHTML = icons[opts[0].value];
+        return this;
+    }
+    /**
+     * Set the placeholder attribute for the input element
+     *
+     * @param placeholder Placeholder string
+     * @returns Self for chaining
+     */
+    placeholder(placeholder) {
+        if (placeholder) {
+            let columnTitle = this._dt.column(this._idx).title();
+            this._dom.input.placeholder = placeholder.replace('[title]', columnTitle);
+        }
+        return this;
+    }
+    /**
+     * Run the search method
+     */
+    runSearch() {
+        let dom = this._dom;
+        let isActive = dom.select.value === 'empty' ||
+            dom.select.value === 'notEmpty' ||
+            dom.input.value !== '';
+        dom.container.classList.toggle('dtcc-search_active', isActive);
+        if (this._search &&
+            (this._lastValue !== dom.input.value || this._lastType !== dom.select.value)) {
+            this._search(dom.select.value, dom.input.value, this._loadingState);
+            this._lastValue = dom.input.value;
+            this._lastType = dom.select.value;
+        }
+    }
+    /**
+     * Set the function that will be run when a search operation is required. Note that this can
+     * trigger the function to run if there is a saved state.
+     *
+     * @param fn Search callback
+     * @returns Self for chaining
+     */
+    search(fn) {
+        this._search = fn;
+        // If there is a saved state, load it now that set up is done.
+        this._stateLoad(this._dt.state.loaded());
+        return this;
+    }
+    /**
+     * Set a value for the search input
+     *
+     * @param logic Logic type
+     * @param val Value
+     * @returns Self for chaining
+     */
+    set(logic, val) {
+        let dom = this._dom;
+        dom.input.value = val;
+        dom.select.value = logic;
+        dom.typeIcon.innerHTML = icons[dom.select.value];
+        this.runSearch();
+        return this;
+    }
+    /**
+     * Set a function to transform the input value before SSP data submission
+     *
+     * @param fn Transform function
+     * @returns Self for chaining
+     */
+    sspTransform(fn) {
+        this._sspTransform = fn;
+        return this;
+    }
+    /**
+     * Set extra information to be send to the server for server-side processing
+     *
+     * @param data Data object
+     * @returns Self for chaining
+     */
+    sspData(data) {
+        this._sspData = data;
+        return this;
+    }
+    /**
+     * Set the text that will be shown as the title for the control
+     *
+     * @param text Set the title text
+     * @returns Self for chaining
+     */
+    title(text) {
+        if (text) {
+            let columnTitle = this._dt.column(this._idx).title();
+            this._dom.title.innerHTML = text.replace('[title]', columnTitle);
+        }
+        return this;
+    }
+    /**
+     * Set the title attribute for the input element
+     *
+     * @param title Title attribute string
+     * @returns Self for chaining
+     */
+    titleAttr(title) {
+        if (title) {
+            let columnTitle = this._dt.column(this._idx).title();
+            this._dom.input.title = title.replace('[title]', columnTitle);
+        }
+        return this;
+    }
+    type(t) {
+        this._type = t;
+        return this;
+    }
     /**
      * Create a container element, for consistent DOM structure and styling
      */
-    function SearchInput(dt, idx, columnUnique) {
-        var _this = this;
+    constructor(dt, idx, columnUnique) {
         this._type = 'text';
         this._sspTransform = null;
         this._sspData = {};
@@ -1462,264 +1637,93 @@ var SearchInput = /** @class */ (function () {
             select: createElement('select', SearchInput.classes.select),
             title: createElement('div', 'dtcc-search-title')
         };
-        var dom = this._dom;
-        var originalIdx = idx;
+        let dom = this._dom;
+        let originalIdx = idx;
         dom.input.setAttribute('type', 'text');
         dom.container.append(dom.title, dom.inputs);
         dom.inputs.append(dom.typeIcon, dom.select, dom.searchIcon, dom.clear, dom.input);
         // Listeners
-        var inputInput = function () {
-            _this.runSearch();
+        let inputInput = () => {
+            this.runSearch();
         };
-        var selectInput = function () {
+        let selectInput = () => {
             dom.typeIcon.innerHTML = icons[dom.select.value];
-            _this.runSearch();
+            this.runSearch();
         };
-        var clearClick = function () {
-            _this.clear();
+        let clearClick = () => {
+            this.clear();
         };
         dom.input.addEventListener('input', inputInput);
         dom.select.addEventListener('input', selectInput);
         dom.clear.addEventListener('click', clearClick);
-        dt.on('destroy', function () {
+        dt.on('destroy', () => {
             dom.input.removeEventListener('input', inputInput);
             dom.select.removeEventListener('input', selectInput);
             dom.clear.removeEventListener('click', clearClick);
         });
         // State handling - all components that use this class have the same state saving structure
         // so shared handling can be performed here.
-        dt.on('stateSaveParams.DT', function (e, s, data) {
+        dt.on('stateSaveParams.DT', (e, s, data) => {
             if (!data.columnControl) {
                 data.columnControl = {};
             }
-            if (!data.columnControl[_this._colUnique]) {
-                data.columnControl[_this._colUnique] = {};
+            if (!data.columnControl[this._colUnique]) {
+                data.columnControl[this._colUnique] = {};
             }
-            data.columnControl[_this._colUnique].searchInput = {
+            data.columnControl[this._colUnique].searchInput = {
                 logic: dom.select.value,
-                type: _this._type,
+                type: this._type,
                 value: dom.input.value
             };
         });
-        dt.on('stateLoaded.DT', function (e, s, state) {
-            _this._stateLoad(state);
+        dt.on('stateLoaded.DT', (e, s, state) => {
+            this._stateLoad(state);
         });
         // Same as for ColumnControl - reassign a column index if needed.
-        dt.on('columns-reordered.DT', function (e, details) {
-            _this._idx = dt.colReorder.transpose(originalIdx, 'fromOriginal');
+        dt.on('columns-reordered.DT', (e, details) => {
+            this._idx = dt.colReorder.transpose(originalIdx, 'fromOriginal');
         });
         // Column control search clearing (column().columnControl.searchClear() method)
-        dt.on('cc-search-clear.DT', function (e, colIdx) {
-            if (colIdx === _this._idx) {
+        dt.on('cc-search-clear.DT', (e, colIdx) => {
+            if (colIdx === this._idx) {
                 // Don't want an automatic redraw on this event
-                _this._loadingState = true;
-                _this.clear();
-                _this._loadingState = false;
+                this._loadingState = true;
+                this.clear();
+                this._loadingState = false;
             }
         });
         // Data for server-side processing
         if (dt.page.info().serverSide) {
-            dt.on('preXhr.DT', function (e, s, d) {
+            dt.on('preXhr.DT', (e, s, d) => {
                 // The column has been removed from the submit data - can't do anything
-                if (!d.columns || !d.columns[_this._idx]) {
+                if (!d.columns || !d.columns[this._idx]) {
                     return;
                 }
-                if (!d.columns[_this._idx].columnControl) {
-                    d.columns[_this._idx].columnControl = {};
+                if (!d.columns[this._idx].columnControl) {
+                    d.columns[this._idx].columnControl = {};
                 }
-                var val = _this._dom.input.value;
-                if (_this._sspTransform) {
-                    val = _this._sspTransform(val);
+                let val = this._dom.input.value;
+                if (this._sspTransform) {
+                    val = this._sspTransform(val);
                 }
-                d.columns[_this._idx].columnControl.search = Object.assign({
+                d.columns[this._idx].columnControl.search = Object.assign({
                     value: val,
-                    logic: _this._dom.select.value,
-                    type: _this._type
-                }, _this._sspData);
+                    logic: this._dom.select.value,
+                    type: this._type
+                }, this._sspData);
             });
         }
     }
-    /**
-     * Add a class to the container
-     *
-     * @param name Class name to add
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.addClass = function (name) {
-        this._dom.container.classList.add(name);
-        return this;
-    };
-    /**
-     * Clear any applied search
-     *
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.clear = function () {
-        this.set(this._dom.select.children[0].getAttribute('value'), '');
-        return this;
-    };
-    /**
-     * Set the clear icon feature can be used or not
-     *
-     * @param set Flag
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.clearable = function (set) {
-        // Note there is no add here as it is added by default and never used after setup, so
-        // no need.
-        if (!set) {
-            this._dom.clear.remove();
-        }
-        return this;
-    };
-    /**
-     * Get the container element
-     *
-     * @returns The container element
-     */
-    SearchInput.prototype.element = function () {
-        return this._dom.container;
-    };
-    /**
-     * Get the HTML input element for this control
-     *
-     * @returns HTML Input element
-     */
-    SearchInput.prototype.input = function () {
-        return this._dom.input;
-    };
-    /**
-     * Set the list of options for the dropdown
-     *
-     * @param opts List of options
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.options = function (opts) {
-        var select = this._dom.select;
-        for (var i = 0; i < opts.length; i++) {
-            select.add(new Option(opts[i].label, opts[i].value));
-        }
-        // Initial icon
-        this._dom.typeIcon.innerHTML = icons[opts[0].value];
-        return this;
-    };
-    /**
-     * Set the placeholder attribute for the input element
-     *
-     * @param placeholder Placeholder string
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.placeholder = function (placeholder) {
-        if (placeholder) {
-            var columnTitle = this._dt.column(this._idx).title();
-            this._dom.input.placeholder = placeholder.replace('[title]', columnTitle);
-        }
-        return this;
-    };
-    /**
-     * Run the search method
-     */
-    SearchInput.prototype.runSearch = function () {
-        var dom = this._dom;
-        var isActive = dom.select.value === 'empty' ||
-            dom.select.value === 'notEmpty' ||
-            dom.input.value !== '';
-        dom.container.classList.toggle('dtcc-search_active', isActive);
-        if (this._search &&
-            (this._lastValue !== dom.input.value || this._lastType !== dom.select.value)) {
-            this._search(dom.select.value, dom.input.value, this._loadingState);
-            this._lastValue = dom.input.value;
-            this._lastType = dom.select.value;
-        }
-    };
-    /**
-     * Set the function that will be run when a search operation is required. Note that this can
-     * trigger the function to run if there is a saved state.
-     *
-     * @param fn Search callback
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.search = function (fn) {
-        this._search = fn;
-        // If there is a saved state, load it now that set up is done.
-        this._stateLoad(this._dt.state.loaded());
-        return this;
-    };
-    /**
-     * Set a value for the search input
-     *
-     * @param logic Logic type
-     * @param val Value
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.set = function (logic, val) {
-        var dom = this._dom;
-        dom.input.value = val;
-        dom.select.value = logic;
-        dom.typeIcon.innerHTML = icons[dom.select.value];
-        this.runSearch();
-        return this;
-    };
-    /**
-     * Set a function to transform the input value before SSP data submission
-     *
-     * @param fn Transform function
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.sspTransform = function (fn) {
-        this._sspTransform = fn;
-        return this;
-    };
-    /**
-     * Set extra information to be send to the server for server-side processing
-     *
-     * @param data Data object
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.sspData = function (data) {
-        this._sspData = data;
-        return this;
-    };
-    /**
-     * Set the text that will be shown as the title for the control
-     *
-     * @param text Set the title text
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.title = function (text) {
-        if (text) {
-            var columnTitle = this._dt.column(this._idx).title();
-            this._dom.title.innerHTML = text.replace('[title]', columnTitle);
-        }
-        return this;
-    };
-    /**
-     * Set the title attribute for the input element
-     *
-     * @param title Title attribute string
-     * @returns Self for chaining
-     */
-    SearchInput.prototype.titleAttr = function (title) {
-        if (title) {
-            var columnTitle = this._dt.column(this._idx).title();
-            this._dom.input.title = title.replace('[title]', columnTitle);
-        }
-        return this;
-    };
-    SearchInput.prototype.type = function (t) {
-        this._type = t;
-        return this;
-    };
     /**
      * Load a DataTables state
      *
      * @param state State object being loaded
      */
-    SearchInput.prototype._stateLoad = function (state) {
+    _stateLoad(state) {
         var _a, _b;
-        var dom = this._dom;
-        var idx = this._colUnique;
-        var loadedState = (_b = (_a = state === null || state === void 0 ? void 0 : state.columnControl) === null || _a === void 0 ? void 0 : _a[idx]) === null || _b === void 0 ? void 0 : _b.searchInput;
+        let dom = this._dom;
+        let idx = this._colUnique;
+        let loadedState = (_b = (_a = state === null || state === void 0 ? void 0 : state.columnControl) === null || _a === void 0 ? void 0 : _a[idx]) === null || _b === void 0 ? void 0 : _b.searchInput;
         if (loadedState) {
             // The search callback needs to know if we are loading an existing state or not
             // so it can determine if it needs to draw the table. If it was a user input, then
@@ -1730,14 +1734,13 @@ var SearchInput = /** @class */ (function () {
             dom.select.dispatchEvent(new Event('input'));
             this._loadingState = false;
         }
-    };
-    SearchInput.classes = {
-        container: ['dtcc-content', 'dtcc-search'],
-        input: '',
-        select: ''
-    };
-    return SearchInput;
-}());
+    }
+}
+SearchInput.classes = {
+    container: ['dtcc-content', 'dtcc-search'],
+    input: '',
+    select: ''
+};
 
 var searchDateTime = {
     defaults: {
@@ -1749,22 +1752,21 @@ var searchDateTime = {
         title: '',
         titleAttr: ''
     },
-    init: function (config) {
-        var _this = this;
-        var fromPicker = false;
-        var dt = this.dt();
-        var i18nBase = 'columnControl.search.datetime.';
-        var pickerFormat = '';
-        var dataSrcFormat = '';
-        var dateTime;
-        var resolveFormats = function () {
-            dataSrcFormat = getFormat(dt, _this.idx());
+    init(config) {
+        let fromPicker = false;
+        let dt = this.dt();
+        let i18nBase = 'columnControl.search.datetime.';
+        let pickerFormat = '';
+        let dataSrcFormat = '';
+        let dateTime;
+        let resolveFormats = () => {
+            dataSrcFormat = getFormat(dt, this.idx());
             pickerFormat = config.format ? config.format : dataSrcFormat;
         };
-        var searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
+        let searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
             .type('date')
             .addClass('dtcc-searchDateTime')
-            .sspTransform(function (val) { return toISO(val, pickerFormat); })
+            .sspTransform((val) => toISO(val, pickerFormat))
             .sspData({ mask: config.mask })
             .clearable(config.clear)
             .placeholder(config.placeholder)
@@ -1777,15 +1779,13 @@ var searchDateTime = {
             { label: dt.i18n(i18nBase + 'less', 'Before'), value: 'less' },
             { label: dt.i18n(i18nBase + 'empty', 'Empty'), value: 'empty' },
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
-        ].filter(function (x) { return !config.excludeLogic.includes(x.value); }))
-            .search(function (searchType, searchTerm, loadingState) {
+        ].filter((x) => !config.excludeLogic.includes(x.value)))
+            .search((searchType, searchTerm, loadingState) => {
             // If in a dropdown, set the parent levels as active
             if (config._parents) {
-                config._parents.forEach(function (btn) {
-                    return btn.activeList(_this.unique() + 'date', searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm);
-                });
+                config._parents.forEach((btn) => btn.activeList(this.unique() + 'datetime', searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm));
             }
-            var column = dt.column(_this.idx());
+            let column = dt.column(this.idx());
             // When SSP, don't apply a filter here, SearchInput will add to the submit data
             if (dt.page.info().serverSide) {
                 // Need to let the searchClear button know if we have a filter
@@ -1801,15 +1801,15 @@ var searchDateTime = {
             if (!pickerFormat || !dataSrcFormat) {
                 resolveFormats();
             }
-            var mask = config.mask;
-            var search = searchTerm === ''
+            let mask = config.mask;
+            let search = searchTerm === ''
                 ? ''
                 : dateToNum(dateTime && fromPicker ? dateTime.val() : searchTerm.trim(), pickerFormat, mask);
             if (searchType === 'empty') {
-                column.search.fixed('dtcc', function (haystack) { return !haystack; });
+                column.search.fixed('dtcc', (haystack) => !haystack);
             }
             else if (searchType === 'notEmpty') {
-                column.search.fixed('dtcc', function (haystack) { return !!haystack; });
+                column.search.fixed('dtcc', (haystack) => !!haystack);
             }
             else if (column.search.fixed('dtcc') === '' && search === '') {
                 // No change - don't do anything
@@ -1823,38 +1823,30 @@ var searchDateTime = {
                 // Use a function for matching - weak typing
                 // Note that the haystack in the search function is the rendered date - it
                 // might need to be converted back to a date
-                column.search.fixed('dtcc', function (haystack) {
-                    return dateToNum(haystack, dataSrcFormat, mask) == search;
-                });
+                column.search.fixed('dtcc', (haystack) => dateToNum(haystack, dataSrcFormat, mask) == search);
             }
             else if (searchType === 'notEqual') {
-                column.search.fixed('dtcc', function (haystack) {
-                    return dateToNum(haystack, dataSrcFormat, mask) != search;
-                });
+                column.search.fixed('dtcc', (haystack) => dateToNum(haystack, dataSrcFormat, mask) != search);
             }
             else if (searchType === 'greater') {
-                column.search.fixed('dtcc', function (haystack) {
-                    return dateToNum(haystack, dataSrcFormat, mask) > search;
-                });
+                column.search.fixed('dtcc', (haystack) => dateToNum(haystack, dataSrcFormat, mask) > search);
             }
             else if (searchType === 'less') {
-                column.search.fixed('dtcc', function (haystack) {
-                    return dateToNum(haystack, dataSrcFormat, mask) < search;
-                });
+                column.search.fixed('dtcc', (haystack) => dateToNum(haystack, dataSrcFormat, mask) < search);
             }
             if (!loadingState) {
                 column.draw();
             }
         });
         // Once data has been loaded we can run DateTime with the specified format
-        dt.ready(function () {
-            var DateTime = DataTable.use('datetime');
+        dt.ready(() => {
+            let DateTime = DataTable.use('datetime');
             resolveFormats();
             if (DateTime) {
                 dateTime = new DateTime(searchInput.input(), {
                     format: pickerFormat,
-                    i18n: dt.settings()[0].oLanguage.datetime, // could be undefined
-                    onChange: function () {
+                    i18n: dt.settings()[0].language.datetime, // could be undefined
+                    onChange: () => {
                         fromPicker = true;
                         searchInput.runSearch();
                         fromPicker = false;
@@ -1873,7 +1865,7 @@ var searchDateTime = {
  * @returns Date / time formatting string
  */
 function getFormat(dt, column) {
-    var type = dt.column(column).type();
+    let type = dt.column(column).type();
     if (!type) {
         // Assume that it is ISO unless otherwise specified - that is all DataTables can do anyway
         return 'YYYY-MM-DD';
@@ -1882,10 +1874,10 @@ function getFormat(dt, column) {
         // If no format was specified in the DT type, a Javascript native toLocaleDateString
         // was used. Need to work out what that format is in Moment or Luxon. We need to pass
         // a known value though the renderer and work out the format
-        var renderer = dt.settings()[0].aoColumns[column].mRender;
-        var resultPm = renderer('1999-08-07T23:05:04Z', 'display');
-        var resultAm = renderer('1999-08-07T03:05:04Z', 'display');
-        var leadingZero = resultAm.includes('03');
+        let renderer = dt.settings()[0].columns[column].render;
+        let resultPm = renderer('1999-08-07T23:05:04Z', 'display');
+        let resultAm = renderer('1999-08-07T03:05:04Z', 'display');
+        let leadingZero = resultAm.includes('03');
         // What formatter are we using?
         if (DataTable.use('moment')) {
             return resultPm
@@ -1942,13 +1934,13 @@ function getFormat(dt, column) {
  *
  * @param input Input value
  * @param srcFormat String format of the input
- * @param mask Date mask
+ * @param dt DataTables API instance
  * @returns Time stamp - milliseconds
  */
 function dateToNum(input, srcFormat, mask) {
-    var d;
-    var moment = DataTable.use('moment');
-    var luxon = DataTable.use('luxon');
+    let d;
+    let moment = DataTable.use('moment');
+    let luxon = DataTable.use('luxon');
     if (input === '') {
         return '';
     }
@@ -1996,11 +1988,13 @@ function dateToNum(input, srcFormat, mask) {
  *
  * @param input Input value
  * @param srcFormat String format of the input
+ * @param moment Moment instance, if it is available
+ * @param luxon Luxon object, if it is available
  * @returns Value in ISO
  */
 function toISO(input, srcFormat) {
-    var moment = DataTable.use('moment');
-    var luxon = DataTable.use('luxon');
+    let moment = DataTable.use('moment');
+    let luxon = DataTable.use('luxon');
     if (input === '') {
         return '';
     }
@@ -2019,11 +2013,10 @@ function toISO(input, srcFormat) {
 }
 
 /** Set the options to show in the list */
-function setOptions(checkList, opts, activeList) {
-    if (activeList === void 0) { activeList = []; }
-    var existing = checkList.values();
+function setOptions(checkList, opts, activeList = []) {
+    let existing = checkList.values();
     checkList.clear();
-    for (var i = 0; i < opts.length; i++) {
+    for (let i = 0; i < opts.length; i++) {
         if (typeof opts[i] === 'object') {
             checkList.add({
                 active: activeList.includes(opts[i].value),
@@ -2046,7 +2039,7 @@ function setOptions(checkList, opts, activeList) {
 /** Load a saved state */
 function getState(columnIdx, state) {
     var _a, _b;
-    var loadedState = (_b = (_a = state === null || state === void 0 ? void 0 : state.columnControl) === null || _a === void 0 ? void 0 : _a[columnIdx]) === null || _b === void 0 ? void 0 : _b.searchList;
+    let loadedState = (_b = (_a = state === null || state === void 0 ? void 0 : state.columnControl) === null || _a === void 0 ? void 0 : _a[columnIdx]) === null || _b === void 0 ? void 0 : _b.searchList;
     if (loadedState) {
         return loadedState;
     }
@@ -2054,10 +2047,10 @@ function getState(columnIdx, state) {
 /** Get the options for a column from a DT JSON object */
 function getJsonOptions(dt, idx) {
     var _a;
-    var json = (_a = dt.ajax.json()) === null || _a === void 0 ? void 0 : _a.columnControl;
-    var column = dt.column(idx);
-    var name = column.name();
-    var dataSrc = column.dataSrc();
+    let json = (_a = dt.ajax.json()) === null || _a === void 0 ? void 0 : _a.columnControl;
+    let column = dt.column(idx);
+    let name = column.name();
+    let dataSrc = column.dataSrc();
     if (json && json[name]) {
         // Found options matching the column's name - top priority
         return json[name];
@@ -2075,9 +2068,9 @@ function getJsonOptions(dt, idx) {
 function reloadOptions(dt, config, idx, checkList, loadedValues) {
     var _a;
     // Was there options specified in the Ajax return?
-    var json = (_a = dt.ajax.json()) === null || _a === void 0 ? void 0 : _a.columnControl;
-    var options = [];
-    var jsonOptions = getJsonOptions(dt, idx);
+    let json = (_a = dt.ajax.json()) === null || _a === void 0 ? void 0 : _a.columnControl;
+    let options = [];
+    let jsonOptions = getJsonOptions(dt, idx);
     if (jsonOptions) {
         options = jsonOptions;
     }
@@ -2088,7 +2081,7 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
             // Check if the parent buttons should be hidden as well (they will be if there
             // is no visible content in them)
             if (config._parents) {
-                config._parents.forEach(function (btn) { return btn.checkDisplay(); });
+                config._parents.forEach((btn) => btn.checkDisplay());
             }
         }
         // No point in doing any further processing here
@@ -2098,12 +2091,12 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
         // Either no ajax object (i.e. not an Ajax table), or no matching ajax options
         // for this column - get the values for the column, taking into account
         // orthogonal rendering
-        var found = {};
-        var rows = dt.rows({ order: idx }).indexes().toArray();
-        var settings = dt.settings()[0];
-        for (var i = 0; i < rows.length; i++) {
-            var raw = settings.fastData(rows[i], idx, 'filter');
-            var filter = raw !== null && raw !== undefined
+        let found = {};
+        let rows = dt.rows({ order: idx }).indexes().toArray();
+        let settings = dt.settings()[0];
+        for (let i = 0; i < rows.length; i++) {
+            let raw = settings.fastData(rows[i], idx, 'filter');
+            let filter = raw !== null && raw !== undefined
                 ? raw.toString()
                 : '';
             if (!found[filter]) {
@@ -2133,18 +2126,17 @@ var searchList = {
         select: true,
         title: ''
     },
-    init: function (config) {
-        var _this = this;
-        var loadedValues = null;
-        var dt = this.dt();
+    init(config) {
+        let loadedValues = null;
+        let dt = this.dt();
         // The search can be applied from a stored start at start up before the options are
         // available. It can also be applied by user input, so it is generalised into this function.
-        var applySearch = function (values) {
+        let applySearch = (values) => {
             // If in a dropdown, set the parent levels as active
             if (config._parents) {
-                config._parents.forEach(function (btn) { return btn.activeList(_this.unique() + 'list', values && !!values.length); });
+                config._parents.forEach((btn) => btn.activeList(this.unique() + 'list', values && !!values.length));
             }
-            var col = dt.column(_this.idx());
+            let col = dt.column(this.idx());
             // When SSP, don't do any client-side filtering
             if (dt.page.info().serverSide) {
                 // Need to let the searchClear button know if we have a filter
@@ -2161,12 +2153,12 @@ var searchList = {
             }
             else {
                 // Find all matching options from the list of values
-                col.search.fixed('dtcc-list', function (val) {
+                col.search.fixed('dtcc-list', (val) => {
                     return values.includes(val);
                 });
             }
         };
-        var checkList = new CheckList(dt, this, {
+        let checkList = new CheckList(dt, this, {
             search: config.search,
             select: config.select
         })
@@ -2174,7 +2166,7 @@ var searchList = {
             .title(dt
             .i18n('columnControl.searchList', config.title)
             .replace('[title]', dt.column(this.idx()).title()))
-            .handler(function (e, btn, btns, redraw) {
+            .handler((e, btn, btns, redraw) => {
             if (btn) {
                 btn.active(!btn.active());
             }
@@ -2188,47 +2180,47 @@ var searchList = {
             setOptions(checkList, config.options, loadedValues);
         }
         else {
-            dt.ready(function () {
-                reloadOptions(dt, config, _this.idx(), checkList, loadedValues);
+            dt.ready(() => {
+                reloadOptions(dt, config, this.idx(), checkList, loadedValues);
             });
             // Xhr event listener for updates of options
-            dt.on('xhr', function (e, s, json) {
+            dt.on('xhr', (e, s, json) => {
                 // Need to wait for the draw to complete so the table has the latest data
-                dt.one('draw', function () {
-                    reloadOptions(dt, config, _this.idx(), checkList, loadedValues);
+                dt.one('draw', () => {
+                    reloadOptions(dt, config, this.idx(), checkList, loadedValues);
                     loadedValues = null;
                 });
             });
         }
-        var sspValues = [];
+        let sspValues = [];
         // Data for server-side processing
         if (dt.page.info().serverSide) {
-            dt.on('preXhr.DT', function (e, s, d) {
+            dt.on('preXhr.DT', (e, s, d) => {
                 // The column has been removed from the submit data - can't do anything
-                if (!d.columns || !d.columns[_this.idx()]) {
+                if (!d.columns || !d.columns[this.idx()]) {
                     return;
                 }
-                if (!d.columns[_this.idx()].columnControl) {
-                    d.columns[_this.idx()].columnControl = {};
+                if (!d.columns[this.idx()].columnControl) {
+                    d.columns[this.idx()].columnControl = {};
                 }
-                var values = sspValues.length ? sspValues : checkList.values();
+                let values = sspValues.length ? sspValues : checkList.values();
                 sspValues = [];
                 // We need the indexes in the HTTP parameter names (for .NET), so use an object.
-                d.columns[_this.idx()].columnControl.list = Object.assign({}, values);
+                d.columns[this.idx()].columnControl.list = Object.assign({}, values);
             });
         }
         // Unlike the SearchInput based search contents, CheckList does not handle state saving
         // (since the mechanism for column visibility is different), so state saving is handled
         // here.
-        dt.on('stateLoaded', function (e, s, state) {
-            var values = getState(_this.idxOriginal(), state);
+        dt.on('stateLoaded', (e, s, state) => {
+            let values = getState(this.idxOriginal(), state);
             if (values) {
                 checkList.values(values);
                 applySearch(values);
             }
         });
-        dt.on('stateSaveParams', function (e, s, data) {
-            var idx = _this.idxOriginal();
+        dt.on('stateSaveParams', (e, s, data) => {
+            let idx = this.idxOriginal();
             if (!data.columnControl) {
                 data.columnControl = {};
             }
@@ -2242,9 +2234,10 @@ var searchList = {
                 ? checkList.values()
                 : loadedValues;
         });
-        dt.settings()[0].aoColumns[this.idx()].columnControlSearchList = function (options) {
+        // Expose a per-column function that can be used to refresh options
+        dt.settings()[0].columns[this.idx()].columnControlSearchList = (options) => {
             if (options === 'refresh') {
-                reloadOptions(dt, config, _this.idx(), checkList, null);
+                reloadOptions(dt, config, this.idx(), checkList, null);
             }
             else {
                 setOptions(checkList, options);
@@ -2268,11 +2261,10 @@ var searchNumber = {
         title: '',
         titleAttr: ''
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var i18nBase = 'columnControl.search.number.';
-        var searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
+    init(config) {
+        let dt = this.dt();
+        let i18nBase = 'columnControl.search.number.';
+        let searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
             .type('num')
             .addClass('dtcc-searchNumber')
             .clearable(config.clear)
@@ -2294,15 +2286,13 @@ var searchNumber = {
             },
             { label: dt.i18n(i18nBase + 'empty', 'Empty'), value: 'empty' },
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
-        ].filter(function (x) { return !config.excludeLogic.includes(x.value); }))
-            .search(function (searchType, searchTerm, loadingState) {
+        ].filter((x) => !config.excludeLogic.includes(x.value)))
+            .search((searchType, searchTerm, loadingState) => {
             // If in a dropdown, set the parent levels as active
             if (config._parents) {
-                config._parents.forEach(function (btn) {
-                    return btn.activeList(_this.unique() + 'number', searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm);
-                });
+                config._parents.forEach((btn) => btn.activeList(this.unique() + 'number', searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm));
             }
-            var column = dt.column(_this.idx());
+            let column = dt.column(this.idx());
             // When SSP, don't apply a filter here, SearchInput will add to
             // the submit data
             if (dt.page.info().serverSide) {
@@ -2317,10 +2307,10 @@ var searchNumber = {
                 return;
             }
             if (searchType === 'empty') {
-                column.search.fixed('dtcc', function (haystack) { return !haystack; });
+                column.search.fixed('dtcc', (haystack) => !haystack);
             }
             else if (searchType === 'notEmpty') {
-                column.search.fixed('dtcc', function (haystack) { return !!haystack; });
+                column.search.fixed('dtcc', (haystack) => !!haystack);
             }
             else if (column.search.fixed('dtcc') === '' && searchTerm === '') {
                 // No change - don't do anything
@@ -2332,22 +2322,22 @@ var searchNumber = {
             }
             else if (searchType === 'equal') {
                 // Use a function for matching - weak typing
-                column.search.fixed('dtcc', function (haystack) { return stringToNum(haystack) == searchTerm; });
+                column.search.fixed('dtcc', (haystack) => stringToNum(haystack) == searchTerm);
             }
             else if (searchType === 'notEqual') {
-                column.search.fixed('dtcc', function (haystack) { return stringToNum(haystack) != searchTerm; });
+                column.search.fixed('dtcc', (haystack) => stringToNum(haystack) != searchTerm);
             }
             else if (searchType === 'greater') {
-                column.search.fixed('dtcc', function (haystack) { return stringToNum(haystack) > searchTerm; });
+                column.search.fixed('dtcc', (haystack) => stringToNum(haystack) > searchTerm);
             }
             else if (searchType === 'greaterOrEqual') {
-                column.search.fixed('dtcc', function (haystack) { return stringToNum(haystack) >= searchTerm; });
+                column.search.fixed('dtcc', (haystack) => stringToNum(haystack) >= searchTerm);
             }
             else if (searchType === 'less') {
-                column.search.fixed('dtcc', function (haystack) { return stringToNum(haystack) < searchTerm; });
+                column.search.fixed('dtcc', (haystack) => stringToNum(haystack) < searchTerm);
             }
             else if (searchType === 'lessOrEqual') {
-                column.search.fixed('dtcc', function (haystack) { return stringToNum(haystack) <= searchTerm; });
+                column.search.fixed('dtcc', (haystack) => stringToNum(haystack) <= searchTerm);
             }
             if (!loadingState) {
                 column.draw();
@@ -2383,11 +2373,10 @@ var searchText = {
         title: '',
         titleAttr: ''
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var i18nBase = 'columnControl.search.text.';
-        var searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
+    init(config) {
+        let dt = this.dt();
+        let i18nBase = 'columnControl.search.text.';
+        let searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
             .addClass('dtcc-searchText')
             .clearable(config.clear)
             .placeholder(config.placeholder)
@@ -2405,15 +2394,13 @@ var searchText = {
             { label: dt.i18n(i18nBase + 'ends', 'Ends'), value: 'ends' },
             { label: dt.i18n(i18nBase + 'empty', 'Empty'), value: 'empty' },
             { label: dt.i18n(i18nBase + 'notEmpty', 'Not empty'), value: 'notEmpty' }
-        ].filter(function (x) { return !config.excludeLogic.includes(x.value); }))
-            .search(function (searchType, searchTerm, loadingState) {
+        ].filter((x) => !config.excludeLogic.includes(x.value)))
+            .search((searchType, searchTerm, loadingState) => {
             // If in a dropdown, set the parent levels as active
             if (config._parents) {
-                config._parents.forEach(function (btn) {
-                    return btn.activeList(_this.unique() + 'text', searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm);
-                });
+                config._parents.forEach((btn) => btn.activeList(this.unique() + 'text', searchType === 'empty' || searchType === 'notEmpty' || !!searchTerm));
             }
-            var column = dt.column(_this.idx());
+            let column = dt.column(this.idx());
             // When SSP, don't apply a filter here, SearchInput will add to the submit data
             if (dt.page.info().serverSide) {
                 // Need to let the searchClear button know if we have a filter
@@ -2428,10 +2415,10 @@ var searchText = {
             }
             searchTerm = searchTerm.toLowerCase();
             if (searchType === 'empty') {
-                column.search.fixed('dtcc', function (haystack) { return !haystack; });
+                column.search.fixed('dtcc', (haystack) => !haystack);
             }
             else if (searchType === 'notEmpty') {
-                column.search.fixed('dtcc', function (haystack) { return !!haystack; });
+                column.search.fixed('dtcc', (haystack) => !!haystack);
             }
             else if (column.search.fixed('dtcc') === '' && searchTerm === '') {
                 // No change - don't do anything
@@ -2443,10 +2430,10 @@ var searchText = {
             }
             else if (searchType === 'equal') {
                 // Use a function for exact matching
-                column.search.fixed('dtcc', function (haystack) { return haystack.toLowerCase() == searchTerm; });
+                column.search.fixed('dtcc', (haystack) => haystack.toLowerCase() == searchTerm);
             }
             else if (searchType === 'notEqual') {
-                column.search.fixed('dtcc', function (haystack) { return haystack.toLowerCase() != searchTerm; });
+                column.search.fixed('dtcc', (haystack) => haystack.toLowerCase() != searchTerm);
             }
             else if (searchType === 'contains') {
                 // Use the built in smart search
@@ -2454,24 +2441,18 @@ var searchText = {
             }
             else if (searchType === 'notContains') {
                 // Use the built in smart search
-                column.search.fixed('dtcc', function (haystack) { return !haystack.toLowerCase().includes(searchTerm); });
+                column.search.fixed('dtcc', (haystack) => !haystack.toLowerCase().includes(searchTerm));
             }
             else if (searchType === 'starts') {
                 // Use a function for startsWith case insensitive search
-                column.search.fixed('dtcc', function (haystack) {
-                    return haystack.toLowerCase().startsWith(searchTerm);
-                });
+                column.search.fixed('dtcc', (haystack) => haystack.toLowerCase().startsWith(searchTerm));
             }
             else if (searchType === 'ends') {
-                column.search.fixed('dtcc', function (haystack) {
-                    return haystack.toLowerCase().endsWith(searchTerm);
-                });
+                column.search.fixed('dtcc', (haystack) => haystack.toLowerCase().endsWith(searchTerm));
             }
             // If in a dropdown, set the parent levels as active
             if (config._parents) {
-                config._parents.forEach(function (btn) {
-                    return btn.activeList(_this.unique() + 'string', !!column.search.fixed('dtcc'));
-                });
+                config._parents.forEach((btn) => btn.activeList(this.unique() + 'text', !!column.search.fixed('dtcc')));
             }
             if (!loadingState) {
                 column.draw();
@@ -2485,31 +2466,30 @@ var search = {
     defaults: {
         allowSearchList: false
     },
-    init: function (config) {
-        var _this = this;
+    init(config) {
         var _a, _b;
-        var dt = this.dt();
-        var idx = this.idx();
-        var displayEl;
-        var loadedState = (_b = (_a = dt.state.loaded()) === null || _a === void 0 ? void 0 : _a.columnControl) === null || _b === void 0 ? void 0 : _b[idx];
-        var initType = function (type) {
-            var json = getJsonOptions(dt, idx);
+        let dt = this.dt();
+        let idx = this.idx();
+        let displayEl;
+        let loadedState = (_b = (_a = dt.state.loaded()) === null || _a === void 0 ? void 0 : _a.columnControl) === null || _b === void 0 ? void 0 : _b[idx];
+        let initType = (type) => {
+            let json = getJsonOptions(dt, idx);
             // Attempt to match what type of search should be shown
             if (type === 'list' || (config.allowSearchList && json)) {
                 // We've got a list of JSON options, and are allowed to show the searchList
-                return searchList.init.call(_this, Object.assign({}, searchList.defaults, config));
+                return searchList.init.call(this, Object.assign({}, searchList.defaults, config));
             }
             else if (type === 'date' || type.startsWith('datetime')) {
                 // Date types
-                return searchDateTime.init.call(_this, Object.assign({}, searchDateTime.defaults, config));
+                return searchDateTime.init.call(this, Object.assign({}, searchDateTime.defaults, config));
             }
             else if (type.includes('num')) {
                 // Number types
-                return searchNumber.init.call(_this, Object.assign({}, searchNumber.defaults, config));
+                return searchNumber.init.call(this, Object.assign({}, searchNumber.defaults, config));
             }
             else {
                 // Everything else
-                return searchText.init.call(_this, Object.assign({}, searchText.defaults, config));
+                return searchText.init.call(this, Object.assign({}, searchText.defaults, config));
             }
         };
         // If we know the type from the saved state, we can load it immediately. This is required
@@ -2526,9 +2506,9 @@ var search = {
         if (!displayEl) {
             // Wait until we can get the data type for the column and the run the corresponding type
             displayEl = document.createElement('div');
-            dt.ready(function () {
-                var column = dt.column(idx);
-                var display = initType(column.type());
+            dt.ready(() => {
+                let column = dt.column(idx);
+                let display = initType(column.type());
                 displayEl.replaceWith(display);
             });
         }
@@ -2542,24 +2522,23 @@ var searchClear$1 = {
         icon: 'searchClear',
         text: 'Clear Search'
     },
-    init: function (config) {
-        var _this = this;
-        var dt = this.dt();
-        var btn = new Button(dt, this)
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
             .text(dt.i18n('columnControl.searchClear', config.text))
             .icon(config.icon)
             .className(config.className)
-            .handler(function () {
-            dt.column(_this.idx()).columnControl.searchClear().draw();
+            .handler(() => {
+            dt.column(this.idx()).columnControl.searchClear().draw();
         })
             .enable(false);
-        dt.on('draw', function () {
+        dt.on('draw', () => {
             // change enable state
-            var col = dt.column(_this.idx());
-            var search = col.search.fixed('dtcc');
-            var searchList = col.search.fixed('dtcc-list');
-            var searchSearchSsp = col.init().__ccSearch;
-            var searchListSsp = col.init().__ccList;
+            let col = dt.column(this.idx());
+            let search = col.search.fixed('dtcc');
+            let searchList = col.search.fixed('dtcc-list');
+            let searchSearchSsp = col.init().__ccSearch;
+            let searchListSsp = col.init().__ccList;
             btn.enable(!!(search || searchList || searchSearchSsp || searchListSsp));
         });
         return btn.element();
@@ -2583,11 +2562,12 @@ var searchDropdown = {
         title: '',
         titleAttr: ''
     },
-    extend: function (config) {
-        var dt = this.dt();
+    extend(config) {
+        let dt = this.dt();
         return {
             extend: 'dropdown',
             icon: 'search',
+            iconActive: 'searchActive',
             text: dt.i18n('columnControl.searchDropdown', config.text),
             content: [
                 Object.assign(config, {
@@ -2603,9 +2583,9 @@ var spacer = {
         className: 'dtcc-spacer',
         text: ''
     },
-    init: function (config) {
-        var dt = this.dt();
-        var spacer = createElement('div', config.className, dt.i18n('columnControl.spacer', config.text));
+    init(config) {
+        let dt = this.dt();
+        let spacer = createElement('div', config.className, dt.i18n('columnControl.spacer', config.text));
         spacer.setAttribute('role', 'separator');
         return spacer;
     }
@@ -2616,135 +2596,85 @@ var title = {
         className: 'dtcc-title',
         text: null
     },
-    init: function (config) {
-        var dt = this.dt();
-        var title = dt.column(this.idx()).title();
-        var text = config.text === null ? '[title]' : config.text;
-        var el = createElement('div', config.className, text.replace('[title]', title));
+    init(config) {
+        let dt = this.dt();
+        let title = dt.column(this.idx()).title();
+        let text = config.text === null ? '[title]' : config.text;
+        let el = createElement('div', config.className, text.replace('[title]', title));
         return el;
     }
 };
 
-var contentTypes = {
-    colVis: colVis,
-    colVisDropdown: colVisDropdown,
+const contentTypes = {
+    colVis,
+    colVisDropdown,
     dropdown: dropdownContent,
-    reorder: reorder,
-    reorderLeft: reorderLeft,
-    reorderRight: reorderRight,
-    rowGroup: rowGroup,
-    rowGroupAdd: rowGroupAdd,
-    rowGroupClear: rowGroupClear,
-    rowGroupRemove: rowGroupRemove,
-    order: order,
-    orderAddAsc: orderAddAsc,
-    orderAddDesc: orderAddDesc,
-    orderAsc: orderAsc,
-    orderClear: orderClear,
-    orderDesc: orderDesc,
-    orderRemove: orderRemove,
-    orderStatus: orderStatus,
-    search: search,
+    reorder,
+    reorderLeft,
+    reorderRight,
+    rowGroup,
+    rowGroupAdd,
+    rowGroupClear,
+    rowGroupRemove,
+    order,
+    orderAddAsc,
+    orderAddDesc,
+    orderAsc,
+    orderClear,
+    orderDesc,
+    orderRemove,
+    orderStatus,
+    search,
     searchClear: searchClear$1,
-    searchDropdown: searchDropdown,
-    searchDateTime: searchDateTime,
-    searchList: searchList,
-    searchNumber: searchNumber,
-    searchText: searchText,
-    spacer: spacer,
-    title: title
+    searchDropdown,
+    searchDateTime,
+    searchList,
+    searchNumber,
+    searchText,
+    spacer,
+    title
 };
 
 /**
  *
  */
-var ColumnControl = /** @class */ (function () {
-    /**
-     * Create a new ColumnControl instance to control a DataTables column.
-     *
-     * @param dt DataTables API instance
-     * @param columnIdx Column index to operation on
-     * @param opts Configuration options
-     */
-    function ColumnControl(dt, columnIdx, opts) {
-        var _this = this;
-        this._dom = {
-            target: null,
-            wrapper: null
-        };
-        this._c = {};
-        this._s = {
-            columnIdx: null,
-            unique: null,
-            toDestroy: []
-        };
-        this._dt = dt;
-        this._s.columnIdx = columnIdx;
-        this._s.unique = Math.random();
-        var originalIdx = columnIdx;
-        Object.assign(this._c, ColumnControl.defaults, opts);
-        this._dom.target = this._target();
-        if (opts.className) {
-            addClass(this._dom.target.closest('tr'), opts.className);
-        }
-        if (this._c.content) {
-            // If column reordering can be done, we reassign the column index here, and before the
-            // plugins can add their own listeners.
-            dt.on('columns-reordered', function (e, details) {
-                _this._s.columnIdx = dt.colReorder.transpose(originalIdx, 'fromOriginal');
-            });
-            this._dom.wrapper = document.createElement('span');
-            this._dom.wrapper.classList.add('dtcc');
-            this._dom.target.appendChild(this._dom.wrapper);
-            this._c.content.forEach(function (content) {
-                var _a = _this.resolve(content), plugin = _a.plugin, config = _a.config;
-                var el = plugin.init.call(_this, config);
-                _this._dom.wrapper.appendChild(el);
-            });
-            dt.on('destroy', function () {
-                _this._s.toDestroy.slice().forEach(function (el) {
-                    el.destroy();
-                });
-                _this._dom.wrapper.remove();
-            });
-        }
-    }
+class ColumnControl {
     /**
      * Add a component to the destroy list. This is so there is a single destroy event handler,
      * which is much better for performance.
      *
      * @param component Any instance with a `destroy` method
      */
-    ColumnControl.prototype.destroyAdd = function (component) {
+    destroyAdd(component) {
         this._s.toDestroy.push(component);
-    };
+    }
     /**
      * Remove an instance from the destroy list (it has been destroyed itself)
      *
      * @param component Any instance with a `destroy` method
      */
-    ColumnControl.prototype.destroyRemove = function (component) {
-        var idx = this._s.toDestroy.indexOf(component);
+    destroyRemove(component) {
+        let idx = this._s.toDestroy.indexOf(component);
         if (idx !== -1) {
             this._s.toDestroy.splice(idx, 1);
         }
-    };
+    }
     /**
      * Get the DataTables API instance that hosts this instance of ColumnControl
      *
      * @returns DataTables API instance
      */
-    ColumnControl.prototype.dt = function () {
+    dt() {
         return this._dt;
-    };
+    }
     /**
      * Get what column index this instance of ColumnControl is operating on
      *
      * @returns Column index
      */
-    ColumnControl.prototype.idx = function () {
+    idx() {
         return this._s.columnIdx;
-    };
+    }
     /**
      * Get the column index that was originally used for initialisation of this
      * column. This is important when used with ColReorder and when arrays can
@@ -2752,13 +2682,13 @@ var ColumnControl = /** @class */ (function () {
      *
      * @returns Column index
      */
-    ColumnControl.prototype.idxOriginal = function () {
-        var currentIdx = this.idx();
+    idxOriginal() {
+        let currentIdx = this.idx();
         if (this._dt.colReorder) {
             return this._dt.colReorder.transpose(currentIdx, 'toOriginal');
         }
         return currentIdx;
-    };
+    }
     /**
      * Covert the options from `content` in the DataTable initialisation for this instance into a
      * resolved plugin and options.
@@ -2766,10 +2696,10 @@ var ColumnControl = /** @class */ (function () {
      * @param content The dev's supplied configuration for the content
      * @returns Resolved plugin information
      */
-    ColumnControl.prototype.resolve = function (content) {
-        var plugin = null;
-        var config = null;
-        var type = null;
+    resolve(content) {
+        let plugin = null;
+        let config = null;
+        let type = null;
         if (typeof content === 'string') {
             // Simple content - uses default options
             type = content;
@@ -2795,39 +2725,88 @@ var ColumnControl = /** @class */ (function () {
         }
         // If the plugin is a wrapper around another type - e.g. the colVisDropdown
         if (plugin.extend) {
-            var self_1 = plugin.extend.call(this, config);
-            return this.resolve(self_1);
+            let self = plugin.extend.call(this, config);
+            return this.resolve(self);
         }
         return {
-            config: config,
-            type: type,
-            plugin: plugin
+            config,
+            type,
+            plugin
         };
-    };
+    }
     /**
      * Get the unique id for the instance
      *
      * @returns Instant unique id
      */
-    ColumnControl.prototype.unique = function () {
+    unique() {
         return this._s.unique;
-    };
+    }
+    /**
+     * Create a new ColumnControl instance to control a DataTables column.
+     *
+     * @param dt DataTables API instance
+     * @param columnIdx Column index to operation on
+     * @param opts Configuration options
+     */
+    constructor(dt, columnIdx, opts) {
+        this._dom = {
+            target: null,
+            wrapper: null
+        };
+        this._c = {};
+        this._s = {
+            columnIdx: null,
+            unique: null,
+            toDestroy: []
+        };
+        this._dt = dt;
+        this._s.columnIdx = columnIdx;
+        this._s.unique = Math.random();
+        let originalIdx = columnIdx;
+        Object.assign(this._c, ColumnControl.defaults, opts);
+        this._dom.target = this._target();
+        if (opts.className) {
+            addClass(this._dom.target.closest('tr'), opts.className);
+        }
+        if (this._c.content) {
+            // If column reordering can be done, we reassign the column index here, and before the
+            // plugins can add their own listeners.
+            dt.on('columns-reordered', (e, details) => {
+                this._s.columnIdx = dt.colReorder.transpose(originalIdx, 'fromOriginal');
+            });
+            this._dom.wrapper = document.createElement('span');
+            this._dom.wrapper.classList.add('dtcc');
+            this._dom.target.appendChild(this._dom.wrapper);
+            this._c.content.forEach((content) => {
+                let { plugin, config } = this.resolve(content);
+                let el = plugin.init.call(this, config);
+                this._dom.wrapper.appendChild(el);
+            });
+            dt.on('destroy', () => {
+                this._s.toDestroy.slice().forEach(el => {
+                    el.destroy();
+                });
+                this._dom.wrapper.remove();
+            });
+        }
+    }
     /**
      * Resolve the configured target into a DOM element
      */
-    ColumnControl.prototype._target = function () {
-        var target = this._c.target;
-        var column = this._dt.column(this._s.columnIdx);
-        var node;
-        var className = 'header';
+    _target() {
+        let target = this._c.target;
+        let column = this._dt.column(this._s.columnIdx);
+        let node;
+        let className = 'header';
         // Header row index
         if (typeof target === 'number') {
             node = column.header(target);
         }
         else {
-            var parts = target.split(':');
-            var isHeader = parts[0] === 'tfoot' ? false : true;
-            var row = parts[1] ? parseInt(parts[1]) : 0;
+            let parts = target.split(':');
+            let isHeader = parts[0] === 'tfoot' ? false : true;
+            let row = parts[1] ? parseInt(parts[1]) : 0;
             if (isHeader) {
                 node = column.header(row);
             }
@@ -2837,26 +2816,29 @@ var ColumnControl = /** @class */ (function () {
             }
         }
         return node.querySelector('div.dt-column-' + className);
-    };
-    // Classes for common UI
-    ColumnControl.Button = Button;
-    ColumnControl.CheckList = CheckList;
-    ColumnControl.SearchInput = SearchInput;
-    /** Content plugins */
-    ColumnControl.content = contentTypes;
-    /** Defaults for ColumnControl */
-    ColumnControl.defaults = {
-        className: '',
-        content: null,
-        target: 0,
-    };
-    /** SVG icons that can be used by the content plugins */
-    ColumnControl.icons = icons;
-    /** Version */
-    ColumnControl.version = '1.2.1';
-    return ColumnControl;
-}());
+    }
+}
+// Classes for common UI
+ColumnControl.Button = Button;
+ColumnControl.CheckList = CheckList;
+ColumnControl.SearchInput = SearchInput;
+/** Content plugins */
+ColumnControl.content = contentTypes;
+/** Defaults for ColumnControl */
+ColumnControl.defaults = {
+    className: '',
+    content: null,
+    target: 0,
+};
+/** SVG icons that can be used by the content plugins */
+ColumnControl.icons = icons;
+/** Version */
+ColumnControl.version = '2.0.0-beta.1';
 
+
+if (!DataTable || !DataTable.versionCheck || !DataTable.versionCheck('3')) {
+    throw 'Warning: ColumnControl requires DataTables 3 or greater';
+}
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables API integration
  */
@@ -2866,16 +2848,16 @@ DataTable.ColumnControl = ColumnControl;
  */
 // Create header / footer rows that don't exist, but have been referenced in the ColumnControl
 // targets. This needs to be done _before_ the header / footer structure is detected.
-$(document).on('i18n.dt', function (e, settings) {
+Dom.s(document).on('i18n.dt', function (e, settings) {
     if (e.namespace !== 'dt') {
         return;
     }
-    var api = new DataTable.Api(settings);
-    var thead = api.table().header();
-    var tableInit = settings.oInit.columnControl;
-    var defaultInit = ColumnControl.defaults;
-    var baseTargets = [];
-    var ackTargets = {};
+    let api = new Api(settings);
+    let thead = api.table().header();
+    let tableInit = settings.init.columnControl;
+    let defaultInit = ColumnControl.defaults;
+    let baseTargets = [];
+    let ackTargets = {};
     // Determine if there is only one header row initially. If there is, we might append more
     // after it. Mark the top row as the header row using `titleRow` in the DataTables configuration
     if (thead.querySelectorAll('tr').length <= 1 && settings.titleRow === null) {
@@ -2886,39 +2868,39 @@ $(document).on('i18n.dt', function (e, settings) {
         identifyTargets(baseTargets, defaultInit);
     }
     api.columns().every(function (i) {
-        var columnInit = this.init().columnControl;
+        let columnInit = this.init().columnControl;
         identifyTargets(baseTargets, columnInit);
     });
-    for (var i = 0; i < baseTargets.length; i++) {
+    for (let i = 0; i < baseTargets.length; i++) {
         assetTarget(ackTargets, baseTargets[i], api);
     }
 });
 // Initialisation of ColumnControl instances - has to be done _after_ the header / footer structure
 // is detected by DataTables.
-$(document).on('preInit.dt', function (e, settings) {
+Dom.s(document).on('preInit.dt', function (e, settings) {
     if (e.namespace !== 'dt') {
         return;
     }
-    var api = new DataTable.Api(settings);
-    var tableInit = settings.oInit.columnControl;
-    var defaultInit = ColumnControl.defaults;
-    var baseTargets = [];
+    let api = new DataTable.Api(settings);
+    let tableInit = settings.init.columnControl;
+    let defaultInit = ColumnControl.defaults;
+    let baseTargets = [];
     identifyTargets(baseTargets, tableInit);
     // Only add the default target if there is actually content for it
     if (ColumnControl.defaults.content) {
         identifyTargets(baseTargets, defaultInit);
     }
     api.columns().every(function (i) {
-        var columnInit = this.init().columnControl;
-        var targets = identifyTargets(baseTargets.slice(), columnInit);
-        for (var i_1 = 0; i_1 < targets.length; i_1++) {
+        let columnInit = this.init().columnControl;
+        let targets = identifyTargets(baseTargets.slice(), columnInit);
+        for (let i = 0; i < targets.length; i++) {
             // Each of the column, table and defaults configuration can be an array of config
             // objects, an array of content, or a configuration object. There might be multiple
             // targets for each one, and they might not exist! Therefore this is more complex
             // than it might be desirable.
-            var columnTargetInit = getOptionsForTarget(targets[i_1], columnInit);
-            var tableTargetInit = getOptionsForTarget(targets[i_1], tableInit);
-            var defaultTargetInit = getOptionsForTarget(targets[i_1], defaultInit);
+            let columnTargetInit = getOptionsForTarget(targets[i], columnInit);
+            let tableTargetInit = getOptionsForTarget(targets[i], tableInit);
+            let defaultTargetInit = getOptionsForTarget(targets[i], defaultInit);
             if (defaultTargetInit || tableTargetInit || columnTargetInit) {
                 new ColumnControl(api, this.index(), Object.assign({}, defaultTargetInit || {}, tableTargetInit || {}, columnTargetInit || {}));
             }
@@ -2926,7 +2908,7 @@ $(document).on('preInit.dt', function (e, settings) {
     });
 });
 function searchClear() {
-    var ctx = this;
+    let ctx = this;
     return this.iterator('column', function (settings, idx) {
         // Note that the listeners for this will not redraw the table.
         ctx.trigger('cc-search-clear', [idx]);
@@ -2937,21 +2919,20 @@ DataTable.Api.registerPlural('columns().columnControl.searchClear()', 'column().
 DataTable.Api.registerPlural('columns().ccSearchClear()', 'column().ccSearchClear()', searchClear);
 DataTable.Api.registerPlural('columns().columnControl.searchList()', 'column().columnControl.searchList()', function (options) {
     return this.iterator('column', function (settings, idx) {
-        var fn = settings.aoColumns[idx].columnControlSearchList;
+        let fn = settings.columns[idx].columnControlSearchList;
         if (fn) {
             fn(options);
         }
     });
 });
 DataTable.ext.buttons.ccSearchClear = {
-    text: function (dt) {
+    text: (dt) => {
         return dt.i18n('columnControl.buttons.searchClear', 'Clear search');
     },
     init: function (dt, node, config) {
-        var _this = this;
-        dt.on('draw.DT', function () {
-            var enabled = false;
-            var glob = !!dt.search();
+        dt.on('draw.DT', () => {
+            let enabled = false;
+            let glob = !!dt.search();
             // No point in wasting clock cycles if we already know it will be enabled
             if (!glob) {
                 dt.columns().every(function () {
@@ -2963,7 +2944,7 @@ DataTable.ext.buttons.ccSearchClear = {
                     }
                 });
             }
-            _this.enable(glob || enabled);
+            this.enable(glob || enabled);
         });
         this.enable(false);
     },
@@ -2992,13 +2973,13 @@ function assetTarget(ackTargets, target, dt) {
     if (ackTargets[target]) {
         return;
     }
-    var isHeader = true; // false for footer
-    var row = 0;
+    let isHeader = true; // false for footer
+    let row = 0;
     if (typeof target === 'number') {
         row = target;
     }
     else {
-        var parts = target.split(':');
+        let parts = target.split(':');
         if (parts[0] === 'tfoot') {
             isHeader = false;
         }
@@ -3008,13 +2989,13 @@ function assetTarget(ackTargets, target, dt) {
     }
     // The header / footer have not yet had their structure read, so they aren't available via
     // the API. As such we need to do our own DOM tweaking
-    var node = isHeader ? dt.table().header() : dt.table().footer();
+    let node = isHeader ? dt.table().header() : dt.table().footer();
     // If the node doesn't exist yet, we need to create it
     if (!node.querySelectorAll('tr')[row]) {
-        var columns = dt.columns().count();
-        var tr = createElement('tr');
+        let columns = dt.columns().count();
+        let tr = createElement('tr');
         tr.setAttribute('data-dt-order', 'disable');
-        for (var i = 0; i < columns; i++) {
+        for (let i = 0; i < columns; i++) {
             tr.appendChild(createElement('td'));
         }
         node.appendChild(tr);
@@ -3029,8 +3010,8 @@ function assetTarget(ackTargets, target, dt) {
  * @returns The resolved config object, if found
  */
 function getOptionsForTarget(target, input) {
-    var defaultTarget = ColumnControl.defaults.target;
-    var selfTarget;
+    let defaultTarget = ColumnControl.defaults.target;
+    let selfTarget;
     if (isIContentArray(input)) {
         // Top level content array - e.g. `columnControl: ['order']`
         if (defaultTarget === target) {
@@ -3042,8 +3023,8 @@ function getOptionsForTarget(target, input) {
     }
     else if (Array.isArray(input)) {
         // Top level array, some items of which will be configuration objects (possibly not all)
-        for (var i = 0; i < input.length; i++) {
-            var item = input[i];
+        for (let i = 0; i < input.length; i++) {
+            let item = input[i];
             if (isIContentArray(item)) {
                 // A content array, e.g. the inner array from: `columnControl: [['order']]
                 if (defaultTarget === target) {
@@ -3111,7 +3092,7 @@ function identifyTargets(targets, input) {
         }
         else {
             // Array of options, or an array of content
-            input.forEach(function (item) {
+            input.forEach((item) => {
                 add(typeof item === 'object' && item.target !== undefined
                     ? item.target
                     : ColumnControl.defaults.target);
@@ -3140,11 +3121,11 @@ function isIConfig(item) {
  * @returns true if is content only, false if not (i.e. is an array with configuration objects).
  */
 function isIContentArray(arr) {
-    var detectedConfig = false;
+    let detectedConfig = false;
     if (!Array.isArray(arr)) {
         return false;
     }
-    for (var i = 0; i < arr.length; i++) {
+    for (let i = 0; i < arr.length; i++) {
         if (isIConfig(arr[i])) {
             detectedConfig = true;
             break;
