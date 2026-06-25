@@ -1493,7 +1493,8 @@ class SearchInput {
             dom.input.value !== '';
         dom.container.classList.toggle('dtcc-search_active', isActive);
         if (this._search &&
-            (this._lastValue !== dom.input.value || this._lastType !== dom.select.value)) {
+            (this._lastValue !== dom.input.value ||
+                this._lastType !== dom.select.value)) {
             this._search(dom.select.value, dom.input.value, this._loadingState);
             this._lastValue = dom.input.value;
             this._lastType = dom.select.value;
@@ -1627,10 +1628,13 @@ class SearchInput {
             if (!data.columnControl) {
                 data.columnControl = {};
             }
-            if (!data.columnControl[this._colUnique]) {
-                data.columnControl[this._colUnique] = {};
+            // Use the column's name if it has one. This allows for changes in
+            // column structure.
+            let prop = dt.column(this._colUnique).name() || this._colUnique;
+            if (!data.columnControl[prop]) {
+                data.columnControl[prop] = {};
             }
-            data.columnControl[this._colUnique].searchInput = {
+            data.columnControl[prop].searchInput = {
                 logic: dom.select.value,
                 type: this._type,
                 value: dom.input.value
@@ -1680,10 +1684,20 @@ class SearchInput {
      * @param state State object being loaded
      */
     _stateLoad(state) {
-        var _a, _b;
         let dom = this._dom;
         let idx = this._colUnique;
-        let loadedState = (_b = (_a = state === null || state === void 0 ? void 0 : state.columnControl) === null || _a === void 0 ? void 0 : _a[idx]) === null || _b === void 0 ? void 0 : _b.searchInput;
+        let columnName = this._dt.column(idx).name();
+        let loadedState;
+        if (!state || !state.columnControl) {
+            return;
+        }
+        // Prefer to load the state by the name, but allow column index
+        if (state.columnControl[columnName]) {
+            loadedState = state.columnControl[columnName].searchInput;
+        }
+        else if (state.columnControl[idx]) {
+            loadedState = state.columnControl[idx].searchInput;
+        }
         if (loadedState) {
             // The search callback needs to know if we are loading an existing state or not
             // so it can determine if it needs to draw the table. If it was a user input, then
@@ -1997,9 +2011,19 @@ function setOptions(checkList, opts, activeList = []) {
     }
 }
 /** Load a saved state */
-function getState(columnIdx, state) {
-    var _a, _b;
-    let loadedState = (_b = (_a = state === null || state === void 0 ? void 0 : state.columnControl) === null || _a === void 0 ? void 0 : _a[columnIdx]) === null || _b === void 0 ? void 0 : _b.searchList;
+function getState(dt, idx, state) {
+    let loadedState;
+    let columnName = dt.column(idx).name();
+    if (!state || !state.columnControl) {
+        return;
+    }
+    // Prefer to load the state by the name, but allow column index
+    if (state.columnControl[columnName]) {
+        loadedState = state.columnControl[columnName].searchList;
+    }
+    else if (state.columnControl[idx]) {
+        loadedState = state.columnControl[idx].searchList;
+    }
     if (loadedState) {
         return loadedState;
     }
@@ -2041,7 +2065,7 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
             // Check if the parent buttons should be hidden as well (they will be if there
             // is no visible content in them)
             if (config._parents) {
-                config._parents.forEach((btn) => btn.checkDisplay());
+                config._parents.forEach(btn => btn.checkDisplay());
             }
         }
         // No point in doing any further processing here
@@ -2056,9 +2080,7 @@ function reloadOptions(dt, config, idx, checkList, loadedValues) {
         let settings = dt.settings()[0];
         for (let i = 0; i < rows.length; i++) {
             let raw = settings.fastData(rows[i], idx, 'filter');
-            let filter = raw !== null && raw !== undefined
-                ? raw.toString()
-                : '';
+            let filter = raw !== null && raw !== undefined ? raw.toString() : '';
             if (!found[filter]) {
                 found[filter] = true;
                 options.push({
@@ -2091,10 +2113,10 @@ var searchList = {
         let dt = this.dt();
         // The search can be applied from a stored start at start up before the options are
         // available. It can also be applied by user input, so it is generalised into this function.
-        let applySearch = (values) => {
+        let applySearch = values => {
             // If in a dropdown, set the parent levels as active
             if (config._parents) {
-                config._parents.forEach((btn) => btn.activeList(this.unique() + 'list', values && !!values.length));
+                config._parents.forEach(btn => btn.activeList(this.unique() + 'list', values && !!values.length));
             }
             let col = dt.column(this.idx());
             // When SSP, don't do any client-side filtering
@@ -2113,7 +2135,7 @@ var searchList = {
             }
             else {
                 // Find all matching options from the list of values
-                col.search.fixed('dtcc-list', (val) => {
+                col.search.fixed('dtcc-list', val => {
                     return values.includes(val);
                 });
             }
@@ -2135,7 +2157,7 @@ var searchList = {
                 dt.draw();
             }
         });
-        loadedValues = getState(this.idx(), dt.state.loaded());
+        loadedValues = getState(dt, this.idx(), dt.state.loaded());
         if (config.options) {
             setOptions(checkList, config.options, loadedValues);
         }
@@ -2173,7 +2195,7 @@ var searchList = {
         // (since the mechanism for column visibility is different), so state saving is handled
         // here.
         dt.on('stateLoaded', (e, s, state) => {
-            let values = getState(this.idxOriginal(), state);
+            let values = getState(dt, this.idxOriginal(), state);
             if (values) {
                 checkList.values(values);
                 applySearch(values);
@@ -2184,25 +2206,29 @@ var searchList = {
             if (!data.columnControl) {
                 data.columnControl = {};
             }
-            if (!data.columnControl[idx]) {
-                data.columnControl[idx] = {};
+            // Use the column's name if it has one. This allows for changes in
+            // column structure.
+            let prop = dt.column(idx).name() || idx;
+            if (!data.columnControl[prop]) {
+                data.columnControl[prop] = {};
             }
             // If the table isn't yet ready, then the options for the list won't have been
             // populated (above) and therefore there can't be an values. In such a case
             // use the last saved values and this will refresh on the next draw.
-            data.columnControl[idx].searchList = dt.ready()
+            data.columnControl[prop].searchList = dt.ready()
                 ? checkList.values()
                 : loadedValues;
         });
         // Expose a per-column function that can be used to refresh options
-        dt.settings()[0].columns[this.idx()].columnControlSearchList = (options) => {
-            if (options === 'refresh') {
-                reloadOptions(dt, config, this.idx(), checkList, null);
-            }
-            else {
-                setOptions(checkList, options);
-            }
-        };
+        dt.settings()[0].columns[this.idx()].columnControlSearchList =
+            options => {
+                if (options === 'refresh') {
+                    reloadOptions(dt, config, this.idx(), checkList, null);
+                }
+                else {
+                    setOptions(checkList, options);
+                }
+            };
         applySearch(loadedValues);
         // If SSP, then there are no options yet, so for a saved state we need
         // to use the values from the state in a temporary variable
