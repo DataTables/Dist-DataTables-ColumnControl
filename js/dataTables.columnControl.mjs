@@ -1733,9 +1733,19 @@ var searchDateTime = {
         let pickerFormat = '';
         let dataSrcFormat = '';
         let dateTime;
+        let fastData;
         let resolveFormats = () => {
             dataSrcFormat = getFormat(dt, this.idx());
-            pickerFormat = config.format ? config.format : dataSrcFormat;
+            if (config.format) {
+                pickerFormat = config.format;
+            }
+            else if (dataSrcFormat === 'original') {
+                pickerFormat = 'YYYY-MM-DD';
+                fastData = dt.settings()[0].fastData;
+            }
+            else {
+                pickerFormat = dataSrcFormat;
+            }
         };
         let searchInput = new SearchInput(dt, this.idx(), this.idxOriginal())
             .type('date')
@@ -1794,19 +1804,19 @@ var searchDateTime = {
                 column.search.fixed('dtcc', '');
             }
             else if (searchType === 'equal') {
-                // Use a function for matching - weak typing
-                // Note that the haystack in the search function is the rendered date - it
+                // Use a function for matching - weak typing. Note that the
+                // haystack in the search function is the rendered date - it
                 // might need to be converted back to a date
-                column.search.fixed('dtcc', (haystack) => dateToNum(haystack, dataSrcFormat, mask) == search);
+                column.search.fixed('dtcc', (haystack, data, row, column) => dateToNum(fastData ? fastData(row, column) : haystack, dataSrcFormat, mask) == search);
             }
             else if (searchType === 'notEqual') {
-                column.search.fixed('dtcc', (haystack) => dateToNum(haystack, dataSrcFormat, mask) != search);
+                column.search.fixed('dtcc', (haystack, data, row, column) => dateToNum(fastData ? fastData(row, column) : haystack, dataSrcFormat, mask) != search);
             }
             else if (searchType === 'greater') {
-                column.search.fixed('dtcc', (haystack) => dateToNum(haystack, dataSrcFormat, mask) > search);
+                column.search.fixed('dtcc', (haystack, data, row, column) => dateToNum(fastData ? fastData(row, column) : haystack, dataSrcFormat, mask) > search);
             }
             else if (searchType === 'less') {
-                column.search.fixed('dtcc', (haystack) => dateToNum(haystack, dataSrcFormat, mask) < search);
+                column.search.fixed('dtcc', (haystack, data, row, column) => dateToNum(fastData ? fastData(row, column) : haystack, dataSrcFormat, mask) < search);
             }
             if (!loadingState) {
                 column.draw();
@@ -1888,7 +1898,7 @@ function getFormat(dt, column) {
         else if (resultPm.includes('23')) {
             return 'hh:mm:ss';
         }
-        // fall through to final return
+        return 'original';
     }
     else if (type.includes('datetime-')) {
         // Column was specified with a particular display format - we can extract that format from
