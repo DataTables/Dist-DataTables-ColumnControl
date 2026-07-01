@@ -1485,16 +1485,18 @@ class SearchInput {
     }
     /**
      * Run the search method
+     *
+     * @param force Force the search to happen, regardless of the last values
      */
-    runSearch() {
+    runSearch(force = false) {
         let dom = this._dom;
         let isActive = dom.select.value === 'empty' ||
             dom.select.value === 'notEmpty' ||
             dom.input.value !== '';
         dom.container.classList.toggle('dtcc-search_active', isActive);
-        if (this._search &&
+        if (force || (this._search &&
             (this._lastValue !== dom.input.value ||
-                this._lastType !== dom.select.value)) {
+                this._lastType !== dom.select.value))) {
             this._search(dom.select.value, dom.input.value, this._loadingState);
             this._lastValue = dom.input.value;
             this._lastType = dom.select.value;
@@ -1735,7 +1737,6 @@ var searchDateTime = {
         let dataSrcFormat = '';
         let dateTime;
         let fastData;
-        let makeSearchTerm = () => { };
         let resolveFormats = () => {
             dataSrcFormat = getFormat(dt, this.idx());
             if (config.format) {
@@ -1788,16 +1789,9 @@ var searchDateTime = {
                 resolveFormats();
             }
             let mask = config.mask;
-            let search;
-            // Store this as a function, so if the column type changes, we
-            // have a way of updating the search term with the new format.
-            makeSearchTerm = () => {
-                search =
-                    searchTerm === ''
-                        ? ''
-                        : dateToNum(dateTime && fromPicker ? dateTime.val() : searchTerm.trim(), pickerFormat, mask);
-            };
-            makeSearchTerm();
+            let search = searchTerm === ''
+                ? ''
+                : dateToNum(dateTime && fromPicker ? dateTime.val() : searchTerm.trim(), pickerFormat, mask);
             if (searchType === 'empty') {
                 column.search.fixed('dtcc', (haystack) => !haystack);
             }
@@ -1835,7 +1829,7 @@ var searchDateTime = {
         // otherwise set, we may need to update our formats.
         dt.on('columnTypes', () => {
             resolveFormats();
-            makeSearchTerm();
+            searchInput.runSearch(true);
         });
         // Once data has been loaded we can run DateTime with the specified format
         dt.ready(() => {

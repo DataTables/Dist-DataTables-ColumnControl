@@ -743,8 +743,10 @@ declare class SearchInput {
     placeholder(placeholder: string): this;
     /**
      * Run the search method
+     *
+     * @param force Force the search to happen, regardless of the last values
      */
-    runSearch(): void;
+    runSearch(force?: boolean): void;
     /**
      * Set the function that will be run when a search operation is required. Note that this can
      * trigger the function to run if there is a saved state.
