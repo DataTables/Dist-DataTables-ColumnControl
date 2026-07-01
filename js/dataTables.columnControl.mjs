@@ -1508,20 +1508,10 @@ class SearchInput {
      * @returns Self for chaining
      */
     search(fn) {
-        let dt = this._dt;
+        this._dt;
         this._search = fn;
-        // If there is a saved state, we need to load it in. If the table is
-        // ready, that we can just run immediately. However, if is isn't ready
-        // then the column types might not have been set and we need to wait
-        // for that.
-        if (dt.ready()) {
-            this._stateLoad(this._dt.state.loaded());
-        }
-        else {
-            dt.one('initDraw', () => {
-                this._stateLoad(this._dt.state.loaded());
-            });
-        }
+        // Apply a state if there is one
+        this._stateLoad(this._dt.state.loaded());
         return this;
     }
     /**
@@ -1745,6 +1735,7 @@ var searchDateTime = {
         let dataSrcFormat = '';
         let dateTime;
         let fastData;
+        let makeSearchTerm = () => { };
         let resolveFormats = () => {
             dataSrcFormat = getFormat(dt, this.idx());
             if (config.format) {
@@ -1797,9 +1788,16 @@ var searchDateTime = {
                 resolveFormats();
             }
             let mask = config.mask;
-            let search = searchTerm === ''
-                ? ''
-                : dateToNum(dateTime && fromPicker ? dateTime.val() : searchTerm.trim(), pickerFormat, mask);
+            let search;
+            // Store this as a function, so if the column type changes, we
+            // have a way of updating the search term with the new format.
+            makeSearchTerm = () => {
+                search =
+                    searchTerm === ''
+                        ? ''
+                        : dateToNum(dateTime && fromPicker ? dateTime.val() : searchTerm.trim(), pickerFormat, mask);
+            };
+            makeSearchTerm();
             if (searchType === 'empty') {
                 column.search.fixed('dtcc', (haystack) => !haystack);
             }
@@ -1832,6 +1830,12 @@ var searchDateTime = {
             if (!loadingState) {
                 column.draw();
             }
+        });
+        // If there is an invalidation on the column types, or the type is
+        // otherwise set, we may need to update our formats.
+        dt.on('columnTypes', () => {
+            resolveFormats();
+            makeSearchTerm();
         });
         // Once data has been loaded we can run DateTime with the specified format
         dt.ready(() => {
