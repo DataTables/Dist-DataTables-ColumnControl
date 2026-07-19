@@ -364,6 +364,8 @@ const icons = {
     groupTop: wrap('<rect width="13.5" height="7.5" x="3" y="3" fill="currentColor" rx="1.5"/><rect width="7.5" height="7.5" x="13.5" y="13.5" rx="1.5"/>'),
     // Custom
     groupRemove: wrap('<path d="M2.451 17.25H9.75"/><rect width="13.5" height="7.5" x="3" y="3" rx="1.5"/><rect width="7.5" height="7.5" x="13.5" y="13.5" rx="1.5"/>'),
+    // Info
+    info: wrap('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'),
     less: wrap('<path d="m15 18-6-6 6-6"/>'),
     // Custom
     lessOrEqual: wrap('<path d="m15 16-6-6 6-6"/><path d="m15 21-6-6"/>'),
@@ -968,90 +970,84 @@ var colVisDropdown = {
     }
 };
 
-var reorder = {
+var info = {
     defaults: {
-        className: 'reorder',
-        icon: 'move',
-        text: 'Reorder columns'
+        activation: 'hover',
+        className: 'info',
+        content: 'attr:title',
+        contentClass: 'dtcc-popover',
+        gap: 10,
+        icon: 'info',
+        text: ''
     },
     init(config) {
         let dt = this.dt();
         let btn = new Button(dt, this)
-            .text(dt.i18n('columnControl.reorder', config.text))
+            .text(dt.i18n('columnControl.order', config.text))
             .icon(config.icon)
             .className(config.className);
-        // The event handling for this is done in ColReorder._addListener - no event
-        // handler needed here for click / drag
-        if (this.idx() === 0) {
-            btn.enable(false);
-        }
-        dt.on('columns-reordered', (e, details) => {
-            btn.enable(this.idx() > 0);
-        });
-        // If ColReorder wasn't initialised on this DataTable, then we need to add it
-        if (!dt.init().colReorder) {
-            new DataTable.ColReorder(dt, {});
-        }
-        return btn.element();
-    }
-};
-
-var reorderLeft = {
-    defaults: {
-        className: 'reorderLeft',
-        icon: 'moveLeft',
-        text: 'Move column left'
-    },
-    init(config) {
-        let dt = this.dt();
-        let btn = new Button(dt, this)
-            .text(dt.i18n('columnControl.reorderLeft', config.text))
-            .icon(config.icon)
-            .className(config.className)
-            .handler(() => {
-            let idx = this.idx();
-            // TODO account for visibility
-            if (idx > 0) {
-                dt.colReorder.move(idx, idx - 1);
+        let buttonEl = Dom.s(btn.element());
+        let popover = Dom.c('div').classAdd(config.contentClass);
+        let timer;
+        if (config.content.match(/^attr:/)) {
+            let name = config.content.replace(/^attr:/, '');
+            let header = Dom.s(dt.column(this.idx()).header());
+            let content = header.attr(name);
+            header.attrRemove(name);
+            if (!content) {
+                return;
             }
-        });
-        if (this.idx() === 0) {
-            btn.enable(false);
+            popover.text(content);
         }
-        dt.on('columns-reordered', (e, details) => {
-            btn.enable(this.idx() > 0);
+        else {
+            popover.html(config.content);
+        }
+        buttonEl.on(config.activation === 'hover' ? 'mouseenter' : 'click', () => {
+            show(popover, buttonEl, config.gap);
         });
-        return btn.element();
-    }
-};
-
-var reorderRight = {
-    defaults: {
-        className: 'reorderRight',
-        icon: 'moveRight',
-        text: 'Move column right'
-    },
-    init(config) {
-        let dt = this.dt();
-        let btn = new Button(dt, this)
-            .text(dt.i18n('columnControl.reorderRight', config.text))
-            .icon(config.icon)
-            .className(config.className)
-            .handler(() => {
-            let idx = this.idx();
-            if (idx < dt.columns().count() - 1) {
-                dt.colReorder.move(idx, idx + 1);
+        // Hide on exit, but allow a little bit of time for the pointer to get
+        // into the popover to keep it in place
+        buttonEl.on('mouseleave', () => {
+            timer = setTimeout(() => {
+                remove(popover);
+            }, 250);
+        });
+        popover
+            .on('mouseenter', () => {
+            if (timer) {
+                clearTimeout(timer);
             }
+        })
+            .on('mouseleave', () => {
+            remove(popover);
         });
-        if (this.idx() === dt.columns().count() - 1) {
-            btn.enable(false);
-        }
-        dt.on('columns-reordered', (e, details) => {
-            btn.enable(this.idx() < dt.columns().count() - 1);
-        });
-        return btn.element();
+        return buttonEl[0];
     }
 };
+function show(popover, host, gap) {
+    // Set to 0 so we can insert, take measurement (reflow) and reposition if
+    // needed, without a flicker
+    popover.css('opacity', '0');
+    host.parent().append(popover);
+    let height = popover.height('outer');
+    let width = popover.width('outer');
+    let buttonWidth = host.width('outer');
+    let buttonHeight = host.height('outer');
+    let buttonPosition = host.position();
+    host.offset();
+    popover.css({
+        top: -height - gap + 'px',
+        left: buttonPosition.left + buttonWidth / 2 - width / 2 + 'px'
+    });
+    // Check if overflowing top
+    if (popover[0].getBoundingClientRect().y < 0) {
+        popover.css('top', buttonHeight + gap + 'px').classAdd('below');
+    }
+    popover.css('opacity', '1');
+}
+function remove(popover) {
+    popover.detach().classRemove('below');
+}
 
 var order = {
     defaults: {
@@ -1261,6 +1257,91 @@ var orderStatus = {
     },
     extend(config) {
         return Object.assign(config, { extend: 'order' });
+    }
+};
+
+var reorder = {
+    defaults: {
+        className: 'reorder',
+        icon: 'move',
+        text: 'Reorder columns'
+    },
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
+            .text(dt.i18n('columnControl.reorder', config.text))
+            .icon(config.icon)
+            .className(config.className);
+        // The event handling for this is done in ColReorder._addListener - no event
+        // handler needed here for click / drag
+        if (this.idx() === 0) {
+            btn.enable(false);
+        }
+        dt.on('columns-reordered', (e, details) => {
+            btn.enable(this.idx() > 0);
+        });
+        // If ColReorder wasn't initialised on this DataTable, then we need to add it
+        if (!dt.init().colReorder) {
+            new DataTable.ColReorder(dt, {});
+        }
+        return btn.element();
+    }
+};
+
+var reorderLeft = {
+    defaults: {
+        className: 'reorderLeft',
+        icon: 'moveLeft',
+        text: 'Move column left'
+    },
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
+            .text(dt.i18n('columnControl.reorderLeft', config.text))
+            .icon(config.icon)
+            .className(config.className)
+            .handler(() => {
+            let idx = this.idx();
+            // TODO account for visibility
+            if (idx > 0) {
+                dt.colReorder.move(idx, idx - 1);
+            }
+        });
+        if (this.idx() === 0) {
+            btn.enable(false);
+        }
+        dt.on('columns-reordered', (e, details) => {
+            btn.enable(this.idx() > 0);
+        });
+        return btn.element();
+    }
+};
+
+var reorderRight = {
+    defaults: {
+        className: 'reorderRight',
+        icon: 'moveRight',
+        text: 'Move column right'
+    },
+    init(config) {
+        let dt = this.dt();
+        let btn = new Button(dt, this)
+            .text(dt.i18n('columnControl.reorderRight', config.text))
+            .icon(config.icon)
+            .className(config.className)
+            .handler(() => {
+            let idx = this.idx();
+            if (idx < dt.columns().count() - 1) {
+                dt.colReorder.move(idx, idx + 1);
+            }
+        });
+        if (this.idx() === dt.columns().count() - 1) {
+            btn.enable(false);
+        }
+        dt.on('columns-reordered', (e, details) => {
+            btn.enable(this.idx() < dt.columns().count() - 1);
+        });
+        return btn.element();
     }
 };
 
@@ -2654,6 +2735,7 @@ const contentTypes = {
     colVis,
     colVisDropdown,
     dropdown: dropdownContent,
+    info,
     reorder,
     reorderLeft,
     reorderRight,
@@ -2826,7 +2908,9 @@ class ColumnControl {
             this._c.content.forEach((content) => {
                 let { plugin, config } = this.resolve(content);
                 let el = plugin.init.call(this, config);
-                this._dom.wrapper.appendChild(el);
+                if (el) {
+                    this._dom.wrapper.appendChild(el);
+                }
             });
             dt.on('destroy', () => {
                 this._s.toDestroy.slice().forEach(el => {

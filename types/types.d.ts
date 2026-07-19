@@ -15,6 +15,7 @@ declare const icons: {
     groupClear: string;
     groupTop: string;
     groupRemove: string;
+    info: string;
     less: string;
     lessOrEqual: string;
     menu: string;
@@ -545,6 +546,29 @@ interface IReorder extends Partial<IReorderConfig> {
     extend: 'reorder';
 }
 
+interface IInfoConfig extends IContentConfig$1 {
+    /** The action on the button that will trigger the popup */
+    activation: 'click' | 'hover';
+    /** Button class name */
+    className: string;
+    /**
+     * Text content. Start with `attr:` to read the content from the header
+     * cell's attribute of the same name
+     */
+    content: string;
+    /** Class name for the popover */
+    contentClass: string;
+    /** Pixel gap between the button and the popover */
+    gap: number;
+    /** The icon to use for the button */
+    icon: string;
+    /** Button text */
+    text: string;
+}
+interface IInfo extends Partial<IInfoConfig> {
+    extend: 'order';
+}
+
 interface IDropdownConfig extends IContentConfig$1 {
     /**
      * The first matching element with this selector will be focused on, when
@@ -640,11 +664,12 @@ interface IRowGroupRemove extends IContentConfig$1 {
     text: string;
 }
 
-type IContentConfig = IColVis | IColVisDropdown | IDropdown | IReorder | IReorderLeft | IReorderRight | IOrder | IOrderAddAsc | IOrderAddDesc | IOrderAsc | IOrderClear | IOrderDesc | IOrderRemove | IOrderStatus | IRowGroup | IRowGroupAdd | IRowGroupClear | IRowGroupRemove | ISearch$1 | ISearchClear | ISearchDropdown | ISearchDateTime | ISearchList | ISearchNumber | ISearchText | ISpacer | ITitle;
+type IContentConfig = IColVis | IColVisDropdown | IDropdown | IInfo | IReorder | IReorderLeft | IReorderRight | IOrder | IOrderAddAsc | IOrderAddDesc | IOrderAsc | IOrderClear | IOrderDesc | IOrderRemove | IOrderStatus | IRowGroup | IRowGroupAdd | IRowGroupClear | IRowGroupRemove | ISearch$1 | ISearchClear | ISearchDropdown | ISearchDateTime | ISearchList | ISearchNumber | ISearchText | ISpacer | ITitle;
 declare const contentTypes: {
     colVis: IContentPlugin<IColVisConfig, {}>;
     colVisDropdown: IContentPlugin<IColVisDropdownConfig, {}>;
     dropdown: IContentPlugin<IDropdownConfig, IClasses>;
+    info: IContentPlugin<IInfoConfig, {}>;
     reorder: IContentPlugin<IReorderConfig, {}>;
     reorderLeft: IContentPlugin<IReorderLeftConfig, {}>;
     reorderRight: IContentPlugin<IReorderRightConfig, {}>;
@@ -903,6 +928,7 @@ declare class ColumnControl {
         groupClear: string;
         groupTop: string;
         groupRemove: string;
+        info: string;
         less: string;
         lessOrEqual: string;
         menu: string;
