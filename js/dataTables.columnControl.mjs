@@ -1910,7 +1910,9 @@ var searchDateTime = {
         // otherwise set, we may need to update our formats.
         dt.on('columnTypes', () => {
             resolveFormats();
-            searchInput.runSearch(true);
+            if (!dt.page.info().serverSide) {
+                searchInput.runSearch(true);
+            }
         });
         // Once data has been loaded we can run DateTime with the specified format
         dt.ready(() => {
