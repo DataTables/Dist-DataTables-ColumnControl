@@ -2931,8 +2931,8 @@ ColumnControl.icons = icons;
 ColumnControl.version = '2.0.2';
 
 
-if (!DataTable || !DataTable.versionCheck || !DataTable.versionCheck('3')) {
-    throw 'Warning: ColumnControl requires DataTables 3 or greater';
+if (!DataTable || !DataTable.versionCheck || !DataTable.versionCheck('3.1')) {
+    throw 'Warning: ColumnControl requires DataTables 3.1 or greater';
 }
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * DataTables API integration
@@ -2943,7 +2943,7 @@ DataTable.ColumnControl = ColumnControl;
  */
 // Create header / footer rows that don't exist, but have been referenced in the ColumnControl
 // targets. This needs to be done _before_ the header / footer structure is detected.
-Dom.s(document).on('i18n.dt', function (e, settings) {
+Dom.on('i18n.dt', function (e, settings) {
     if (e.namespace !== 'dt') {
         return;
     }
@@ -2972,7 +2972,7 @@ Dom.s(document).on('i18n.dt', function (e, settings) {
 });
 // Initialisation of ColumnControl instances - has to be done _after_ the header / footer structure
 // is detected by DataTables.
-Dom.s(document).on('preInit.dt', function (e, settings) {
+Dom.on('preInit.dt', function (e, settings) {
     if (e.namespace !== 'dt') {
         return;
     }
@@ -3085,11 +3085,15 @@ function assetTarget(ackTargets, target, dt) {
     // The header / footer have not yet had their structure read, so they aren't available via
     // the API. As such we need to do our own DOM tweaking
     let node = isHeader ? dt.table().header() : dt.table().footer();
+    let empty = node.querySelectorAll('tr').length === 0;
     // If the node doesn't exist yet, we need to create it
     if (!node.querySelectorAll('tr')[row]) {
         let columns = dt.columns().count();
         let tr = createElement('tr');
-        tr.setAttribute('data-dt-order', 'disable');
+        if (!empty) {
+            tr.setAttribute('data-dt-order', 'disable');
+            empty = false;
+        }
         for (let i = 0; i < columns; i++) {
             tr.appendChild(createElement('td'));
         }
