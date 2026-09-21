@@ -1,14 +1,13 @@
 {
     "name": "datatables.net-columncontrol",
     "description": "ColumnControl for DataTables",
-    "main": "js/dataTables.columnControl.js",
-    "module": "js/dataTables.columnControl.mjs",
+    "main": "./js/dataTables.columnControl.js",
+    "module": "./js/dataTables.columnControl.mjs",
     "types": "./types/types.d.ts",
     "version": "2.0.2",
     "files": [
-        "js/**/*.js",
-        "js/**/*.mjs",
-        "types/**/*.d.ts"
+        "js",
+        "types"
     ],
     "keywords": [
         "ColumnControl",
@@ -34,5 +33,16 @@
     "repository": {
         "type": "git",
         "url": "git+https://github.com/DataTables/ColumnControl.git"
-    }
+    },
+    "exports": {
+        ".": {
+            "types": "./types/types.d.ts",
+            "import": "./js/dataTables.columnControl.mjs",
+            "default": "./js/dataTables.columnControl.mjs",
+            "require": "./js/dataTables.columnControl.js"
+        },
+        "./js/*": "./js/*",
+        "./package.json": "./package.json"
+    },
+    "sideEffects": true
 }
