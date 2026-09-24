@@ -38,8 +38,8 @@
         ".": {
             "types": "./types/types.d.ts",
             "import": "./js/dataTables.columnControl.mjs",
-            "default": "./js/dataTables.columnControl.mjs",
-            "require": "./js/dataTables.columnControl.js"
+            "require": "./js/dataTables.columnControl.js",
+            "default": "./js/dataTables.columnControl.mjs"
         },
         "./js/*": "./js/*",
         "./package.json": "./package.json"
