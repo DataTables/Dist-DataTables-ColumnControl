@@ -1,4 +1,4 @@
-/*! ColumnControl 2.1.1 for DataTables
+/*! ColumnControl 2.1.2 for DataTables
  * Copyright (c) SpryMedia Ltd - datatables.net/license
  *
  * SVG icons: ISC License
@@ -2928,7 +2928,7 @@ ColumnControl.defaults = {
 /** SVG icons that can be used by the content plugins */
 ColumnControl.icons = icons;
 /** Version */
-ColumnControl.version = '2.1.1';
+ColumnControl.version = '2.1.2';
 
 
 if (!DataTable || !DataTable.versionCheck || !DataTable.versionCheck('3.1')) {
