@@ -2559,11 +2559,11 @@ var search = {
         allowSearchList: false
     },
     init(config) {
-        var _a, _b;
+        var _a;
         let dt = this.dt();
         let idx = this.idx();
         let displayEl;
-        let loadedState = (_b = (_a = dt.state.loaded()) === null || _a === void 0 ? void 0 : _a.columnControl) === null || _b === void 0 ? void 0 : _b[idx];
+        let loadedTableState = (_a = dt.state.loaded()) === null || _a === void 0 ? void 0 : _a.columnControl;
         let initType = (type) => {
             let json = getJsonOptions(dt, idx);
             // Attempt to match what type of search should be shown
@@ -2587,6 +2587,15 @@ var search = {
         // If we know the type from the saved state, we can load it immediately. This is required
         // to allow the state to be applied to the table and the first draw to have a filter
         // applied (if it is needed).
+        let loadedState = null;
+        let name = dt.column(idx).name();
+        // Allow for either name or column index recording
+        if (name && loadedTableState && loadedTableState[name]) {
+            loadedState = loadedTableState[name];
+        }
+        else if (loadedTableState && loadedTableState[idx]) {
+            loadedState = loadedTableState[idx];
+        }
         if (loadedState) {
             if (loadedState.searchInput) {
                 displayEl = initType(loadedState.searchInput.type);
