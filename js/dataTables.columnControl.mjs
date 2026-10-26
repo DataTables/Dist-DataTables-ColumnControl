@@ -1718,7 +1718,7 @@ class SearchInput {
             }
             // Use the column's name if it has one. This allows for changes in
             // column structure.
-            let prop = dt.column(this._colUnique).name() || this._colUnique;
+            let prop = dt.column(this._idx).name() || this._colUnique;
             if (!data.columnControl[prop]) {
                 data.columnControl[prop] = {};
             }
@@ -1732,7 +1732,7 @@ class SearchInput {
             this._stateLoad(state);
         });
         // Same as for ColumnControl - reassign a column index if needed.
-        dt.on('columns-reordered.DT', (e, details) => {
+        dt.on('column-reorder.DT', (e, details) => {
             this._idx = dt.colReorder.transpose(originalIdx, 'fromOriginal');
         });
         // Column control search clearing (column().columnControl.searchClear() method)
